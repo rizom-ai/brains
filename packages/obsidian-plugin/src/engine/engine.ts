@@ -50,6 +50,8 @@ export interface FileNote {
 export type Notice =
   /** A version lost; its text is in the Conflicts folder, and in the brain's Inbox when kept there. */
   | { kind: "conflict"; path: string; copy: string; inInbox: boolean }
+  /** The person chose their version of a conflict, but its file changed after the two were shown: nothing was replaced. */
+  | { kind: "conflict-changed"; path: string }
   /** A rename the brain refused was undone in the vault. */
   | { kind: "rename-undone"; from: string; to: string; reason: string };
 
@@ -64,6 +66,8 @@ export interface OpenConflict {
   brains?: string;
   /** The person's version; text files only. */
   yours?: string;
+  /** What the file held when this was listed, by its hash; absent when the file is gone. */
+  seen?: string;
 }
 
 /** Deletions the sync did not make on its own, for the person to decide. */
@@ -257,12 +261,8 @@ export class SyncEngine {
           // point other notes' links at the copy. The brain's takes its place.
           const file = local.get(path);
           if (!file) continue;
-          const bytes = await file.bytes();
-          const copy = conflictCopyPath(path, this.now());
-          await this.vault.write(copy, bytes);
-          await this.download(context, path, file);
           // The person chooses between the two when they have a moment.
-          keepOpen(context.state, { path, copy });
+          await this.setAside(context, path, file, undefined);
         }
         await this.together(plan.download, (path) =>
           this.download(context, path, undefined),
@@ -286,6 +286,8 @@ export class SyncEngine {
           context.report.status = "first-sync";
           return;
         }
+        // One file, and no type compared: what is known of the rest stands.
+        context.report.scope = [];
         await this.replayRenames(context);
         if (this.vault.isBusy(path)) return;
         await this.uploadChanged(context, path);
@@ -324,19 +326,20 @@ export class SyncEngine {
         state.conflicts.map(
           async ({ path, copy }): Promise<OpenConflict | undefined> => {
             if (!(await this.vault.exists(copy))) return undefined;
-            if (extensionOf(path) !== ".md") {
-              return { path, copy, flavor: "image" };
-            }
-            const yours = textOf(await this.vault.read(copy));
-            return (await this.vault.exists(path))
-              ? {
-                  path,
-                  copy,
-                  flavor: "text",
-                  brains: textOf(await this.vault.read(path)),
-                  yours,
-                }
-              : { path, copy, flavor: "text", yours };
+            const flavor = extensionOf(path) === ".md" ? "text" : "image";
+            const current = (await this.vault.exists(path))
+              ? await this.vault.read(path)
+              : undefined;
+            return {
+              path,
+              copy,
+              flavor,
+              ...(current && { seen: await sha256Hex(current) }),
+              ...(flavor === "text" && {
+                ...(current && { brains: textOf(current) }),
+                yours: textOf(await this.vault.read(copy)),
+              }),
+            };
           },
         ),
       );
@@ -345,51 +348,136 @@ export class SyncEngine {
   }
 
   /**
-   * The person chose a version. Keeping the brain's removes the copy;
-   * keeping theirs puts the copy's content in the file, which then goes to
-   * the brain as any edit does. Either way the brain's Inbox entry is
-   * dismissed. The choice is made in the vault at once; what the brain has
-   * to hear waits for the next sync when it cannot be reached.
+   * The person chose a version of a conflict as it was shown to them.
+   * Keeping the brain's removes the copy; keeping theirs puts the copy's
+   * content in the file, which then goes to the brain as any edit does.
+   * Either way the brain's Inbox entry is dismissed. The choice is made in
+   * the vault at once; what the brain has to hear waits for the next sync
+   * when it cannot be reached.
+   *
+   * Their version replaces only the file they were shown: one that changed
+   * since, by a sync or by their own typing, is left as it is, and the
+   * conflict stays for them to compare again.
    */
-  settleConflict(copy: string, keep: "brain" | "mine"): Promise<SyncReport> {
+  settleConflict(
+    shown: OpenConflict,
+    keep: "brain" | "mine",
+  ): Promise<SyncReport> {
     return this.exclusive(async () => {
+      // No type was compared: what is known of every other file stands.
+      const untouched = (notices: Notice[] = []): SyncReport => ({
+        ...newReport(),
+        scope: [],
+        notices,
+      });
       const state = await this.store.load();
-      const conflict = state.conflicts.find((one) => one.copy === copy);
-      if (!conflict) return newReport();
-      if (await this.vault.exists(copy)) {
-        if (keep === "mine") {
-          await this.vault.write(conflict.path, await this.vault.read(copy));
-          // Back, if the person had deleted it: it is not to be deleted.
-          state.deletes = state.deletes.filter(
-            (path) => path !== conflict.path,
-          );
+      const conflict = state.conflicts.find((one) => one.copy === shown.copy);
+      if (!conflict) return untouched();
+      const { path, copy } = conflict;
+      const hasCopy = await this.vault.exists(copy);
+      if (keep === "mine" && hasCopy) {
+        const current = (await this.vault.exists(path))
+          ? await sha256Hex(await this.vault.read(path))
+          : undefined;
+        if (current !== shown.seen) {
+          return untouched([{ kind: "conflict-changed", path }]);
         }
-        await this.vault.trash(copy);
+        await this.vault.write(path, await this.vault.read(copy));
+        // Back, if the person had deleted it: it is not to be deleted.
+        state.deletes = state.deletes.filter((deleted) => deleted !== path);
       }
       state.conflicts = state.conflicts.filter((one) => one.copy !== copy);
       if (conflict.conflictId !== undefined) {
         state.settled.push(conflict.conflictId);
       }
+      // Recorded before the copy goes: a copy left behind by a crash is a
+      // file in a folder, where a conflict left behind would ask again.
       await this.store.save(state);
-      return this.guarded(async (context) => {
+      if (hasCopy) await this.vault.trash(copy);
+      const report = await this.guarded(async (context) => {
         // Dismissed before the upload: an upload that loses again is kept
         // as a conflict of its own.
         await this.tellSettled(context.state);
         if (keep === "mine" && context.state.initialized) {
-          await this.uploadChanged(context, conflict.path);
+          // A rename still to be made in the brain is made first, so the
+          // file goes to the note it is and not to a new one.
+          await this.replayRenames(context);
+          await this.uploadChanged(context, path);
         }
       });
+      return { ...report, scope: [] };
     });
   }
 
-  /** Conflicts whose copy the person removed by hand are theirs no longer. */
+  /**
+   * A conflict whose copy the person removed by hand is settled for the
+   * brain's version: its Inbox entry goes as it does for that choice.
+   */
   private async forgetRemovedCopies(state: SyncState): Promise<void> {
-    const kept = await Promise.all(
-      state.conflicts.map(async (conflict) =>
-        (await this.vault.exists(conflict.copy)) ? conflict : undefined,
-      ),
+    const checked = await Promise.all(
+      state.conflicts.map(async (conflict) => ({
+        conflict,
+        waiting: await this.vault.exists(conflict.copy),
+      })),
     );
-    state.conflicts = kept.filter((conflict) => conflict !== undefined);
+    state.conflicts = checked
+      .filter(({ waiting }) => waiting)
+      .map(({ conflict }) => conflict);
+    state.settled.push(
+      ...checked
+        .filter(({ waiting }) => !waiting)
+        .map(({ conflict }) => conflict.conflictId)
+        .filter((conflictId) => conflictId !== undefined),
+    );
+  }
+
+  /**
+   * Where a version that lost is copied to: named by the file and the
+   * moment, and numbered when a copy of that name is already there, so no
+   * copy is written over another.
+   */
+  private async freeCopyPath(path: string): Promise<string> {
+    const first = conflictCopyPath(path, this.now());
+    const extension = extensionOf(first);
+    const stem = first.slice(0, first.length - extension.length);
+    const names = [
+      first,
+      ...Array.from(
+        { length: 98 },
+        (_, index) => `${stem} (${index + 2})${extension}`,
+      ),
+    ];
+    for (const name of names) {
+      if (!(await this.vault.exists(name))) return name;
+    }
+    return first;
+  }
+
+  /**
+   * Copy a version that lost to Conflicts and take the brain's in its
+   * place. False when the brain's was not taken: the person typed on
+   * meanwhile, so the file is theirs, the copy is of text they have since
+   * moved on from, and the next sync makes the conflict of what they typed.
+   */
+  private async setAside(
+    context: Context,
+    path: string,
+    local: LocalFile,
+    conflictId: string | undefined,
+  ): Promise<string | undefined> {
+    const copy = await this.freeCopyPath(path);
+    await this.vault.write(copy, await local.bytes());
+    if (await this.download(context, path, local)) {
+      keepOpen(context.state, {
+        path,
+        copy,
+        ...(conflictId !== undefined && { conflictId }),
+      });
+      return copy;
+    }
+    await this.vault.trash(copy);
+    if (conflictId !== undefined) context.state.settled.push(conflictId);
+    return undefined;
   }
 
   /**
@@ -1112,8 +1200,6 @@ export class SyncEngine {
     kept: string | boolean,
   ): Promise<void> {
     const inInbox = kept !== false;
-    const copy = conflictCopyPath(path, this.now());
-    await this.vault.write(copy, local);
     const current: LocalFile = {
       flavor: extensionOf(path) === ".md" ? "text" : "image",
       hash: await sha256Hex(local),
@@ -1121,13 +1207,15 @@ export class SyncEngine {
       mtime: 0,
       bytes: async (): Promise<Uint8Array> => local,
     };
-    await this.download(context, path, current);
-    keepOpen(context.state, {
+    const copy = await this.setAside(
+      context,
       path,
-      copy,
-      ...(typeof kept === "string" && { conflictId: kept }),
-    });
-    context.report.notices.push({ kind: "conflict", path, copy, inInbox });
+      current,
+      typeof kept === "string" ? kept : undefined,
+    );
+    if (copy !== undefined) {
+      context.report.notices.push({ kind: "conflict", path, copy, inInbox });
+    }
   }
 
   /** Delete an entry the person deleted, only as the version they last saw. */

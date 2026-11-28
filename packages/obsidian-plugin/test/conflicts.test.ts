@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import type { HttpResponse } from "../src/engine";
+import type { OpenConflict, SyncReport } from "../src/engine";
 import { connect, fresh, stored, type Synced } from "./helpers/setup";
 
 let synced: Synced | undefined;
@@ -22,6 +23,19 @@ async function withConflict(): Promise<Synced> {
   return made;
 }
 
+/** Choose a version of a conflict as the screen does: as it was shown. */
+async function choose(
+  made: Synced,
+  keep: "brain" | "mine",
+  copy = COPY,
+): Promise<SyncReport> {
+  const shown = (await made.engine.openConflicts()).find(
+    (one) => one.copy === copy,
+  );
+  const conflict: OpenConflict = shown ?? { path: "", copy, flavor: "text" };
+  return made.engine.settleConflict(conflict, keep);
+}
+
 /**
  * A conflict is settled where it is seen: the person compares the two
  * versions in Obsidian and keeps one. The copy in Conflicts/ and the
@@ -31,7 +45,7 @@ describe("a conflict waiting for the person", () => {
   it("is listed with both versions", async () => {
     synced = await withConflict();
 
-    expect(await synced.engine.openConflicts()).toEqual([
+    expect(await synced.engine.openConflicts()).toMatchObject([
       {
         path: "tea.md",
         copy: COPY,
@@ -54,14 +68,14 @@ describe("a conflict waiting for the person", () => {
       ],
     });
 
-    expect((await synced.engine.openConflicts())[1]).toEqual({
+    expect((await synced.engine.openConflicts())[1]).toMatchObject({
       path: "image/cup.png",
       copy: "Conflicts/cup 1.png",
       flavor: "image",
     });
   });
 
-  it("is forgotten when its copy was removed by hand", async () => {
+  it("is settled for the brain's version when its copy was removed by hand", async () => {
     synced = await withConflict();
     await synced.vault.trash(COPY);
 
@@ -69,8 +83,8 @@ describe("a conflict waiting for the person", () => {
     await synced.engine.sync();
 
     expect((await synced.store.load()).conflicts).toEqual([]);
-    // Removing a file says nothing of the brain's entry: it stays.
-    expect(await synced.brain.conflicts()).toHaveLength(1);
+    // Removing the copy is choosing the brain's version: its entry goes too.
+    expect(await synced.brain.conflicts()).toEqual([]);
   });
 
   it("follows its note when the note is renamed", async () => {
@@ -86,7 +100,7 @@ describe("keeping the brain's version", () => {
   it("removes the copy and the brain's Inbox entry, and changes no note", async () => {
     synced = await withConflict();
 
-    const report = await synced.engine.settleConflict(COPY, "brain");
+    const report = await choose(synced, "brain");
 
     expect(report.status).toBe("synced");
     expect(report.uploaded).toEqual([]);
@@ -102,7 +116,7 @@ describe("keeping the brain's version", () => {
     synced = await withConflict();
     synced.brain.online = false;
 
-    const report = await synced.engine.settleConflict(COPY, "brain");
+    const report = await choose(synced, "brain");
 
     expect(report.status).toBe("offline");
     // The choice is made here and now; only telling the brain waits.
@@ -125,7 +139,7 @@ describe("keeping the brain's version", () => {
         ? { status: 404, headers: {}, body: new Uint8Array() }
         : reachable(request);
 
-    const report = await synced.engine.settleConflict(COPY, "brain");
+    const report = await choose(synced, "brain");
 
     expect(report.status).toBe("synced");
     expect(await synced.vault.exists(COPY)).toBe(false);
@@ -144,7 +158,7 @@ describe("a brain that cannot settle conflicts for now", () => {
         ? { status: 503, headers: {}, body: new Uint8Array() }
         : reachable(request);
 
-    const settled = await synced.engine.settleConflict(COPY, "mine");
+    const settled = await choose(synced, "mine");
 
     // The choice is made, and the note went up as any edit does.
     expect(settled.status).toBe("synced");
@@ -170,7 +184,7 @@ describe("keeping the person's version", () => {
   it("puts it in the note and in the brain, and clears the copy and the Inbox entry", async () => {
     synced = await withConflict();
 
-    const report = await synced.engine.settleConflict(COPY, "mine");
+    const report = await choose(synced, "mine");
 
     expect(report.uploaded).toEqual(["tea.md"]);
     expect(report.notices).toEqual([]);
@@ -191,7 +205,7 @@ describe("keeping the person's version", () => {
     const AGAIN = "# Tea\n\nFrom Studio, again.\n";
     await synced.brain.write("note", "tea", AGAIN);
 
-    const report = await synced.engine.settleConflict(COPY, "mine");
+    const report = await choose(synced, "mine");
 
     expect(report.uploaded).toEqual([]);
     expect(report.notices.map((notice) => notice.kind)).toEqual(["conflict"]);
@@ -211,7 +225,7 @@ describe("keeping the person's version", () => {
     synced = await withConflict();
     synced.brain.online = false;
 
-    const report = await synced.engine.settleConflict(COPY, "mine");
+    const report = await choose(synced, "mine");
 
     expect(report.status).toBe("offline");
     expect(synced.vault.text("tea.md")).toBe(MINE);
@@ -229,10 +243,126 @@ describe("keeping the person's version", () => {
     synced = await withConflict();
     await synced.vault.trash("tea.md");
 
-    await synced.engine.settleConflict(COPY, "mine");
+    await choose(synced, "mine");
 
     expect(synced.vault.text("tea.md")).toBe(MINE);
     expect(await stored(synced, "tea")).toBe(MINE);
+  });
+});
+
+describe("a note that changed after its versions were shown", () => {
+  it("is not replaced by the person's version, and says so", async () => {
+    synced = await withConflict();
+    const [shown] = await synced.engine.openConflicts();
+    if (!shown) throw new Error("No conflict");
+    // A sync brought a newer version meanwhile, or the person typed in it.
+    synced.vault.setText("tea.md", "# Tea\n\nNewer, and never shown.\n");
+
+    const report = await synced.engine.settleConflict(shown, "mine");
+
+    expect(report.notices).toEqual([
+      { kind: "conflict-changed", path: "tea.md" },
+    ]);
+    expect(report.uploaded).toEqual([]);
+    expect(synced.vault.text("tea.md")).toBe(
+      "# Tea\n\nNewer, and never shown.\n",
+    );
+    expect(synced.vault.text(COPY)).toBe(MINE);
+    expect(await synced.engine.openConflicts()).toHaveLength(1);
+    expect(await synced.brain.conflicts()).toHaveLength(1);
+  });
+
+  it("is not replaced when it came back after being shown as gone", async () => {
+    synced = await withConflict();
+    await synced.vault.trash("tea.md");
+    const [shown] = await synced.engine.openConflicts();
+    if (!shown) throw new Error("No conflict");
+    synced.vault.setText("tea.md", "# Tea\n\nBack.\n");
+
+    const report = await synced.engine.settleConflict(shown, "mine");
+
+    expect(report.notices.map((notice) => notice.kind)).toEqual([
+      "conflict-changed",
+    ]);
+    expect(synced.vault.text("tea.md")).toBe("# Tea\n\nBack.\n");
+  });
+});
+
+describe("a save that loses while the person types on", () => {
+  it("keeps what they typed, and makes the conflict of it at the next sync", async () => {
+    synced = await fresh();
+    await synced.brain.write("note", "tea", "# Tea\n\nSteep it.\n");
+    await connect(synced);
+    await synced.brain.write("note", "tea", STUDIO);
+    synced.vault.setText("tea.md", MINE);
+    const NEWER = "# Tea\n\nFrom Obsidian, and more.\n";
+    const made = synced;
+    const reachable = made.brain.fetch;
+    made.brain.fetch = async (request): Promise<HttpResponse> => {
+      const response = await reachable(request);
+      // Typed while the save was on its way.
+      if (request.method === "PUT") made.vault.setText("tea.md", NEWER);
+      return response;
+    };
+
+    const report = await synced.engine.sync();
+    made.brain.fetch = reachable;
+
+    // The note is the person's, so there is nothing to compare yet.
+    expect(report.notices).toEqual([]);
+    expect(synced.vault.text("tea.md")).toBe(NEWER);
+    expect(await synced.engine.openConflicts()).toEqual([]);
+    expect(await synced.vault.exists(COPY)).toBe(false);
+
+    const next = await synced.engine.sync();
+
+    expect(next.notices.map((notice) => notice.kind)).toEqual(["conflict"]);
+    expect(synced.vault.text("tea.md")).toBe(STUDIO);
+    const open = await synced.engine.openConflicts();
+    expect(open).toHaveLength(1);
+    expect(open[0]?.yours).toBe(NEWER);
+    // The text typed over is not kept twice.
+    expect(await synced.brain.conflicts()).toHaveLength(1);
+  });
+});
+
+describe("two versions that lost in the same second", () => {
+  it("are kept as two copies", async () => {
+    synced = await withConflict();
+    const AGAIN = "# Tea\n\nFrom Studio, again.\n";
+    const MINE_AGAIN = "# Tea\n\nFrom Obsidian, again.\n";
+    await synced.brain.write("note", "tea", AGAIN);
+    synced.vault.setText("tea.md", MINE_AGAIN);
+
+    await synced.engine.sync();
+
+    const open = await synced.engine.openConflicts();
+    expect(open.map((one) => one.yours)).toEqual([MINE, MINE_AGAIN]);
+    expect(new Set(open.map((one) => one.copy)).size).toBe(2);
+    expect(synced.vault.text(COPY)).toBe(MINE);
+  });
+});
+
+describe("a conflict on a note renamed a moment ago", () => {
+  it("is settled on the renamed note, and makes no second note", async () => {
+    synced = await withConflict();
+    await synced.vault.rename("tea.md", "green-tea.md");
+    await synced.engine.noteRenamed("tea.md", "green-tea.md");
+
+    const report = await choose(synced, "mine");
+
+    expect(report.notices).toEqual([]);
+    expect(synced.vault.text("green-tea.md")).toBe(MINE);
+    expect(await stored(synced, "green-tea")).toBe(MINE);
+    expect(await synced.brain.get("note", "tea")).toBeNull();
+  });
+});
+
+describe("what a settled conflict says of the other files", () => {
+  it("says it compared no type, so what is known of them stands", async () => {
+    synced = await withConflict();
+
+    expect((await choose(synced, "brain")).scope).toEqual([]);
   });
 });
 
@@ -241,10 +371,7 @@ describe("a choice that is no longer there to make", () => {
     synced = await withConflict();
     synced.vault.setText("Conflicts/other.md", "# Other\n");
 
-    const report = await synced.engine.settleConflict(
-      "Conflicts/other.md",
-      "mine",
-    );
+    const report = await choose(synced, "mine", "Conflicts/other.md");
 
     expect(report.uploaded).toEqual([]);
     expect(synced.vault.text("Conflicts/other.md")).toBe("# Other\n");
@@ -260,7 +387,7 @@ describe("the first sync of a vault that differs from the brain", () => {
 
     await connect(synced);
 
-    expect(await synced.engine.openConflicts()).toEqual([
+    expect(await synced.engine.openConflicts()).toMatchObject([
       {
         path: "tea.md",
         copy: COPY,
@@ -270,7 +397,7 @@ describe("the first sync of a vault that differs from the brain", () => {
       },
     ]);
 
-    await synced.engine.settleConflict(COPY, "mine");
+    await choose(synced, "mine");
 
     expect(await stored(synced, "tea")).toBe(MINE);
     expect(await synced.engine.openConflicts()).toEqual([]);

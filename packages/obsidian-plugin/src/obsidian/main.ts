@@ -385,15 +385,23 @@ export default class RizomBrainPlugin extends Plugin {
   /** Show what a sync did, and ask what it could not decide alone. */
   private show(report: SyncReport): void {
     this.status = report.status;
+    // A file that went up or came down needs no attention any more.
+    const inStep = [...report.uploaded, ...report.downloaded];
     if (report.status === "synced" || report.localOnly.length > 0) {
       this.localOnly = mergePartial(
         this.localOnly,
         report.localOnly,
         report.scope,
+        inStep,
       );
     }
     if (report.status === "synced") {
-      this.issues = mergePartial(this.issues, report.issues, report.scope);
+      this.issues = mergePartial(
+        this.issues,
+        report.issues,
+        report.scope,
+        inStep,
+      );
     }
     this.renderStatus();
 
@@ -412,6 +420,11 @@ export default class RizomBrainPlugin extends Plugin {
         // Stays until it is clicked, and then shows both versions.
         new Notice(
           `${notice.path} was also changed in your brain. Your brain's version is here now; yours is kept in ${notice.copy}${notice.inInbox ? " and in your brain's Inbox" : ""}. Click to compare and choose.`,
+          0,
+        ).messageEl.addEventListener("click", () => void this.showConflicts());
+      } else if (notice.kind === "conflict-changed") {
+        new Notice(
+          `${notice.path} changed after its two versions were shown, so nothing was replaced. Click to compare them again.`,
           0,
         ).messageEl.addEventListener("click", () => void this.showConflicts());
       } else {
@@ -498,7 +511,7 @@ export default class RizomBrainPlugin extends Plugin {
       this.app,
       open,
       (conflict, keep) => {
-        void this.run(() => engine.settleConflict(conflict.copy, keep));
+        void this.run(() => engine.settleConflict(conflict, keep));
       },
       () => {
         this.asking.conflicts = false;

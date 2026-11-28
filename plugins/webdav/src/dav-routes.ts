@@ -685,31 +685,26 @@ function settledConflict(segments: string[]): string | undefined {
 /**
  * Dismiss a conflict whose person chose elsewhere which version stays. The
  * conflict service decides who may: the person whose edit it holds, or an
- * admin. One that is already settled is answered the same.
+ * admin. Its answer is not passed on: a conflict that is another person's,
+ * already settled or not there is answered as the asker's own is, so the
+ * call tells nobody which conflicts there are.
  */
 async function settleConflict(
   server: DavServer,
   dav: DavRequest,
   conflictId: string,
 ): Promise<Response> {
-  const { conflictPending, resolveConflict } = server.options;
-  if (conflictPending && !(await conflictPending(conflictId))) {
-    return noContent();
-  }
-  const answer = await resolveConflict?.({
+  const answer = await server.options.resolveConflict?.({
     conflictId,
     action: "keep-current",
     userId: dav.grant.principal.userId,
     permissionLevel: dav.grant.principal.permissionLevel,
   });
-  if (!answer) {
-    return new Response("Conflicts cannot be settled here right now.", {
-      status: 503,
-    });
-  }
-  return "message" in answer
-    ? new Response(answer.message, { status: 409 })
-    : noContent();
+  return answer
+    ? noContent()
+    : new Response("Conflicts cannot be settled here right now.", {
+        status: 503,
+      });
 }
 
 async function remove(server: DavServer, dav: DavRequest): Promise<Response> {

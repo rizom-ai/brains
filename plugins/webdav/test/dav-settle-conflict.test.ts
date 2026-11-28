@@ -68,33 +68,30 @@ describe("a sync client settling a conflict its person decided", () => {
     ]);
   });
 
-  it("answers the same for a conflict that is already settled, and asks nothing", async () => {
-    const { brain, dav, conflictId } = await withConflict();
-    brain.resolveConflicts();
-
-    const response = await dav("DELETE", settle(conflictId), {
-      as: laptop,
-      headers: SYNC,
-    });
-
-    expect(response.status).toBe(204);
-    expect(brain.settled).toEqual([]);
-  });
-
-  it("says why when the conflict service refuses", async () => {
+  it("says nothing of a conflict: whose it is, or whether there is one", async () => {
     const { brain, dav, conflictId } = await withConflict();
     brain.settleRefusal =
       "Only the person whose edit this is, or an admin, can resolve it";
 
-    const response = await dav("DELETE", settle(conflictId), {
+    // Another person's, one that is not there, and one already settled are
+    // all answered as the asker's own is: the service decides, and only it
+    // knows.
+    const anothers = await dav("DELETE", settle(conflictId), {
+      as: { user: "desktop" },
+      headers: SYNC,
+    });
+    const none = await dav("DELETE", settle("post:nothing:20260101T000000Z"), {
       as: { user: "desktop" },
       headers: SYNC,
     });
 
-    expect(response.status).toBe(409);
-    expect(await response.text()).toBe(
-      "Only the person whose edit this is, or an admin, can resolve it",
-    );
+    expect(anothers.status).toBe(204);
+    expect(none.status).toBe(204);
+    expect(await anothers.text()).toBe("");
+    expect(brain.settled.map((asked) => asked.userId)).toEqual([
+      "desktop",
+      "desktop",
+    ]);
   });
 
   it("is unavailable on a brain that keeps no conflicts", async () => {
