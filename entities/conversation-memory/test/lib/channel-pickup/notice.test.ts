@@ -6,11 +6,11 @@ import {
   postAllPendingNotices,
   postPendingNotices,
   type ChannelNoticeDeps,
-} from "../../../src/lib/channel-action-items/notice";
+} from "../../../src/lib/channel-pickup/notice";
 import {
   channelBookmarks,
   type ChannelNotice,
-} from "../../../src/lib/channel-action-items/pickup";
+} from "../../../src/lib/channel-pickup/pickup";
 
 const ROOM = "discord-discord:guild-1:1466";
 const NOW = new Date("2026-10-23T10:00:00.000Z");

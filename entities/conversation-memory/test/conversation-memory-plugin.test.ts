@@ -6,8 +6,8 @@ import {
 } from "@brains/contracts";
 import { createActionItem } from "@brains/action-items";
 import { SYSTEM_CHANNELS } from "@brains/plugins";
-import { channelBookmarks } from "../src/lib/channel-action-items/pickup";
-import { channelPickupJob } from "../src/lib/channel-action-items/trigger";
+import { channelBookmarks } from "../src/lib/channel-pickup/pickup";
+import { channelPickupJob } from "../src/lib/channel-pickup/trigger";
 import {
   createPluginHarness,
   type PluginTestHarness,

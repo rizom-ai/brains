@@ -16,13 +16,13 @@ import {
 import type {
   ChannelExtractionResult,
   FoundActionItem,
-} from "../../../src/lib/channel-action-items/extractor";
+} from "../../../src/lib/channel-pickup/extractor";
 import {
   channelBookmarks,
   pickUpChannelActionItems,
   type ChannelBookmark,
   type ChannelPickupDeps,
-} from "../../../src/lib/channel-action-items/pickup";
+} from "../../../src/lib/channel-pickup/pickup";
 
 const CONVERSATION = "discord:1466";
 const MEMBERS = [

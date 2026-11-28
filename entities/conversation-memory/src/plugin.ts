@@ -23,7 +23,7 @@ import { flattenMemoryIds } from "./lib/flat-memory-ids";
 import {
   channelPickupJobHandler,
   registerChannelActionItems,
-} from "./lib/channel-action-items/register";
+} from "./lib/channel-pickup/register";
 import { memoryContextOf } from "./lib/memory-context";
 import { SUMMARY_PLUGIN_ID } from "./lib/constants";
 
