@@ -1,5 +1,17 @@
 # @brains/studio
 
+## 0.2.0-alpha.807
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.807
+  - @brains/app-ui-react@0.2.0-alpha.807
+  - @brains/console-theme@0.2.0-alpha.807
+  - @brains/contracts@0.2.0-alpha.807
+  - @brains/operator-view-react@0.2.0-alpha.807
+  - @brains/utils@0.2.0-alpha.807
+
 ## 0.2.0-alpha.806
 
 ### Minor Changes
