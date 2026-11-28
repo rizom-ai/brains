@@ -47,8 +47,8 @@ excerpt: A brief summary of the post
 author: Author Name
 coverImageId: cover-image # an image entity
 ogImageId: og-post-post-title # the social card, rendered when published
-seriesName: My Series
-seriesIndex: 1
+series:
+  - My Series # one series at most; its place is when it is published
 ogImage: https://example.com/og-image.jpg
 canonicalUrl: https://example.com/posts/my-post
 ---

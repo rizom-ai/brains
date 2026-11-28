@@ -5,6 +5,7 @@ import {
   createPluginHarness,
 } from "@brains/plugins/test";
 import type { BlogPost, BlogPostStatus } from "../src/schemas/blog-post";
+import { postDocument } from "../src/lib/post-markdown";
 import { blogPlugin } from "./blog-plugin";
 
 // A post as a declared type reads it: its metadata and its body.
@@ -53,9 +54,25 @@ const context = createMockServicePluginContext();
 
 describe("blog ATProto projection", () => {
   it("maps blog posts to ai.rizom.brain.post records", async () => {
-    const { projection } = await installed();
+    const { harness, projection } = await installed();
+    // The post is the second published part of its series; no number is stored.
+    const current = post("published", { series: ["Brains"] });
+    const earlier: BlogPost = {
+      ...post("published", {
+        series: ["Brains"],
+        publishedAt: "2026-05-01T12:00:00.000Z",
+      }),
+      id: "post-0",
+    };
+    // Stored as documents, as the store holds posts.
+    harness.getMockShell().addEntities(
+      [current, earlier].map((entry) => ({
+        ...entry,
+        content: postDocument(entry),
+      })),
+    );
     const record = await projection.buildRecord({
-      entity: post("published", { seriesName: "Brains", seriesIndex: 2 }),
+      entity: current,
       context,
       config: { brainDid: "did:web:brain.example.com" },
       topics: ["protocols"],

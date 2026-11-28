@@ -21,7 +21,6 @@ interface SeriesMember {
   url: string | null;
   frontmatter: {
     title: string | null;
-    seriesIndex: number | null;
     excerpt: string | null;
     publishedAt: string | null;
   } | null;
@@ -105,7 +104,8 @@ export const SeriesDetailTemplate = ({
                 member.frontmatter?.title ??
                 readString(member.metadata, "title") ??
                 member.id;
-              const seriesIndex = member.frontmatter?.seriesIndex ?? index + 1;
+              // Members come in their place in the series.
+              const seriesIndex = index + 1;
               const excerpt =
                 member.frontmatter?.excerpt ??
                 readString(member.metadata, "excerpt");

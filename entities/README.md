@@ -52,7 +52,7 @@ There is no event-owned projection job or manual derive/rebuild tool. Command-ow
 | refined-note        | `refined-note`                       |            | Worked-out notes written from notes, which they replace  |
 | portfolio           | `project`                            |            | Portfolio projects with structured case studies          |
 | prompt              | `prompt`                             |            | Reusable prompt entities                                 |
-| series              | `series`                             | yes        | Cross-content series, projected from seriesName field    |
+| series              | `series`                             | yes        | Cross-content series, projected from the series group    |
 | site-info           | `site-info`                          |            | Site metadata — title, description, CTA, theme           |
 | social-media        | `social-post`                        | yes        | Social media posts generated from published content      |
 | style-guide         | `style-guide`                        |            | Singleton messaging, voice, and visual guidance          |

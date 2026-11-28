@@ -30,7 +30,6 @@ export const blogGenerationJobSchema: z.ZodObject<{
   canonicalUrl: z.ZodOptional<z.ZodString>;
   coverImageId: z.ZodOptional<z.ZodString>;
   seriesName: z.ZodOptional<z.ZodString>;
-  seriesIndex: z.ZodOptional<z.ZodNumber>;
   sourceEntityType: z.ZodOptional<z.ZodString>;
   sourceEntityIds: z.ZodOptional<z.ZodArray<z.ZodString>>;
   skipAi: z.ZodOptional<z.ZodBoolean>;
@@ -45,7 +44,6 @@ export const blogGenerationJobSchema: z.ZodObject<{
   canonicalUrl: z.string().url().optional(),
   coverImageId: z.string().optional(),
   seriesName: z.string().optional(),
-  seriesIndex: z.number().optional(),
   sourceEntityType: z.string().optional(),
   sourceEntityIds: z.array(z.string()).optional(),
   skipAi: z.boolean().optional(),
@@ -219,28 +217,10 @@ async function writePost(
 }
 
 /**
- * The next index in a series: one past the published posts already in it,
- * read at the run's scope.
- */
-async function nextSeriesIndex(
-  runtime: EntityRuntime,
-  seriesName: string,
-): Promise<number> {
-  const posts = await runtime.anyEntities.listEntities({ entityType: "post" });
-  return (
-    posts.filter(
-      (post) =>
-        post.metadata["seriesName"] === seriesName &&
-        post.metadata["publishedAt"],
-    ).length + 1
-  );
-}
-
-/**
  * The post's `post:generation`: the title, body and excerpt from the AI,
  * as the anchor and in the brain's voice, from the sources it names; a
  * skeleton without it; an excerpt written for a given body; the author from
- * the anchor's profile, its place in a series counted, a title that is
+ * the anchor's profile, a title that is
  * taken asked for again; saved under its title beside any post that already
  * has it.
  */
@@ -273,10 +253,6 @@ export const postGeneration: EntityGenerationDeclaration<
     const publishedAt =
       input.publishedAt ??
       (status === "published" ? new Date().toISOString() : undefined);
-    const seriesIndex =
-      input.seriesName && !input.seriesIndex
-        ? await nextSeriesIndex(runtime, input.seriesName)
-        : input.seriesIndex;
 
     // Ensure title doesn't collide with an existing entity
     const finalTitle = await ensureUniqueTitle({
@@ -303,8 +279,8 @@ export const postGeneration: EntityGenerationDeclaration<
         author,
         ...(input.canonicalUrl && { canonicalUrl: input.canonicalUrl }),
         ...(input.coverImageId && { coverImageId: input.coverImageId }),
-        ...(input.seriesName && { seriesName: input.seriesName }),
-        ...(seriesIndex && { seriesIndex }),
+        // Its series is its one group value; its place is when it is published.
+        ...(input.seriesName && { series: [input.seriesName] }),
       },
       resultExtras: { title: finalTitle, slug },
     });

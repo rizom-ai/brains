@@ -101,6 +101,41 @@ describe("the blog data source", () => {
       ).rejects.toThrow("not found with slug: nonexistent-slug");
     });
 
+    it("numbers a listed post by its place in its series, even off the page", async () => {
+      seed([
+        createMockPost("part-1", "Part 1", "part-1", "published", {
+          publishedAt: "2025-01-01T10:00:00.000Z",
+          seriesName: "Tides",
+        }),
+        createMockPost("part-2", "Part 2", "part-2", "published", {
+          publishedAt: "2025-01-02T10:00:00.000Z",
+          seriesName: "Tides",
+        }),
+        createMockPost("loose", "Loose", "loose", "published", {
+          publishedAt: "2025-01-03T10:00:00.000Z",
+        }),
+      ]);
+
+      const result = await datasource.fetch(
+        { entityType: "post", query: { limit: 2 } },
+        postListSchema,
+        mockContext,
+      );
+
+      // The first part is on the next page; the second still knows it is 2.
+      expect(
+        result.posts.map(
+          (post: { id: string; frontmatter: { seriesIndex: unknown } }) => [
+            post.id,
+            post.frontmatter.seriesIndex,
+          ],
+        ),
+      ).toEqual([
+        ["loose", null],
+        ["part-2", 2],
+      ]);
+    });
+
     it("should include series posts when post is part of a series", async () => {
       seed([
         createMockPost(
@@ -111,7 +146,6 @@ describe("the blog data source", () => {
           {
             publishedAt: "2025-01-01T10:00:00.000Z",
             seriesName: "My Series",
-            seriesIndex: 1,
           },
         ),
         createMockPost(
@@ -122,7 +156,6 @@ describe("the blog data source", () => {
           {
             publishedAt: "2025-01-02T10:00:00.000Z",
             seriesName: "My Series",
-            seriesIndex: 2,
           },
         ),
         createMockPost(
@@ -133,7 +166,6 @@ describe("the blog data source", () => {
           {
             publishedAt: "2025-01-03T10:00:00.000Z",
             seriesName: "My Series",
-            seriesIndex: 3,
           },
         ),
         createMockPost("post-4", "Other Post", "other-post", "published", {
@@ -147,10 +179,19 @@ describe("the blog data source", () => {
         mockContext,
       );
 
+      // In their place by when they were published; no number is stored.
       expect(result.seriesPosts).toHaveLength(3);
       expect(result.seriesPosts[0].id).toBe("post-1");
       expect(result.seriesPosts[1].id).toBe("post-2");
       expect(result.seriesPosts[2].id).toBe("post-3");
+      expect(
+        result.seriesPosts.map(
+          (entry: { frontmatter: { seriesIndex: number } }) =>
+            entry.frontmatter.seriesIndex,
+        ),
+      ).toEqual([1, 2, 3]);
+      expect(result.post.frontmatter.seriesIndex).toBe(2);
+      expect(result.post.frontmatter.seriesName).toBe("My Series");
     });
 
     it("should handle first post (no prev)", async () => {

@@ -1,7 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import type { BaseEntity } from "@brains/plugins";
 
-import { GroupingDefinitionSource } from "../src/grouping-definition-source";
+import {
+  GroupingDefinitionSource,
+  type MemberGroup,
+} from "../src/grouping-definition-source";
 
 import { readGroupingDefinitions } from "../src/grouping-definitions";
 import { createStudioPlugins } from "./studio-plugins";
@@ -307,5 +310,67 @@ describe("definition source snapshots", () => {
     await Promise.all([first, second]);
     expect(reads).toBe(2);
     expect(source.getSnapshot().groupings).toEqual({});
+  });
+});
+
+describe("groups a collection type brings with it", () => {
+  test("publishes a member group without an authored definition, which cannot take its key", async () => {
+    const replacements: (readonly unknown[])[] = [];
+    const content = document({
+      series: { label: "My series", multiple: true },
+      areas,
+    });
+    const source = new GroupingDefinitionSource({
+      getContributorTypes: (): string[] => ["note", "post", "series"],
+      // Only types that declare the series field join a series.
+      getMemberGroups: (): MemberGroup[] => [
+        {
+          entityType: "series",
+          label: "Series",
+          multiple: false,
+          types: ["post"],
+        },
+      ],
+      read: async (): Promise<DefinitionRow> => ({
+        content,
+        contentHash: content,
+      }),
+      validate: (): void => {},
+      replace: (next): void => {
+        replacements.push(next);
+      },
+    });
+    await source.ensureCurrent();
+
+    expect(replacements.at(-1)).toEqual([
+      {
+        key: "series",
+        field: "series",
+        label: "Series",
+        types: ["post"],
+        multiple: false,
+      },
+      {
+        key: "areas",
+        field: "areas",
+        label: "Areas",
+        types: ["note", "series"],
+        multiple: true,
+      },
+    ]);
+    expect(source.getSnapshot().issues).toEqual([
+      {
+        path: ["groupings", "series"],
+        message: "Series is built in; it cannot be defined here.",
+      },
+    ]);
+    // What Studio reads offers the built-in group beside the authored ones;
+    // the authored snapshot keeps only what the document defines.
+    expect(source.getEffectiveSnapshot().groupings["series"]).toEqual({
+      label: "Series",
+      multiple: false,
+      excludeTypes: ["note", "series"],
+    });
+    expect(source.getSnapshot().groupings["series"]).toBeUndefined();
   });
 });

@@ -61,8 +61,7 @@ export const postFrontmatter: z.ZodObject = z.object({
   author: z.string().optional(),
   coverImageId: z.string().optional(),
   ogImageId: z.string().optional(),
-  seriesName: z.string().optional(),
-  seriesIndex: z.number().optional(),
+  series: z.array(z.string()).max(1).optional(),
   canonicalUrl: z.string().optional(),
 });
 

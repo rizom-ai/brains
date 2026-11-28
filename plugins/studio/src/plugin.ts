@@ -344,8 +344,9 @@ const studioService = defineServicePlugin({
       context,
       workspaceRegistry,
       entityDisplay,
+      // Read paths offer built-in groups, such as series, beside the authored.
       groupingDefinitions: () =>
-        definitionSource?.getSnapshot() ?? {
+        definitionSource?.getEffectiveSnapshot() ?? {
           groupings: {},
           issues: [],
           excludedTypes: [],

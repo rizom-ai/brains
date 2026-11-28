@@ -18,8 +18,22 @@ interface DefinitionRow {
   created?: string;
   updated?: string;
 }
+/**
+ * A group a collection type brings with it: its members join it through a
+ * list field named after the type, as people choose them.
+ */
+export interface MemberGroup {
+  entityType: string;
+  label: string;
+  multiple: boolean;
+  /** The types that join it: those declaring its field themselves. */
+  types: readonly string[];
+}
+
 interface DefinitionSourceDependencies {
   getContributorTypes(): readonly string[];
+  /** Groups collection types bring with them; none when omitted. */
+  getMemberGroups?(): readonly MemberGroup[];
   read(): Promise<DefinitionRow | null>;
   validate(groupings: readonly EntityGrouping[]): void;
   replace(
@@ -60,6 +74,32 @@ export class GroupingDefinitionSource {
     return current;
   }
 
+  private memberGroups(): readonly MemberGroup[] {
+    return this.dependencies.getMemberGroups?.() ?? [];
+  }
+
+  /**
+   * What Studio reads: the authored definitions and, beside them, each group
+   * a collection type brings, offered over the types that join it.
+   */
+  public getEffectiveSnapshot(): GroupingDefinitionsSnapshot {
+    const snapshot = this.getSnapshot();
+    const contributors = this.dependencies.getContributorTypes();
+    const builtIn = Object.fromEntries(
+      this.memberGroups().map((group) => [
+        group.entityType,
+        {
+          label: group.label,
+          multiple: group.multiple,
+          excludeTypes: contributors.filter(
+            (type) => !group.types.includes(type),
+          ),
+        },
+      ]),
+    );
+    return { ...snapshot, groupings: { ...builtIn, ...snapshot.groupings } };
+  }
+
   public getSnapshot(): GroupingDefinitionsSnapshot {
     return structuredClone(this.snapshot);
   }
@@ -93,7 +133,7 @@ export class GroupingDefinitionSource {
     // view to limit a normal edit to added pairs. These are existing document
     // timestamps, not a persisted readiness marker.
     this.dependencies.replace(
-      declarations(snapshot.groupings, contributorTypes),
+      declarations(snapshot.groupings, contributorTypes, this.memberGroups()),
       {
         reprojectExisting: !afterWrite,
       },
@@ -159,6 +199,16 @@ export class GroupingDefinitionSource {
       excludedTypes,
     };
     for (const [key, value] of Object.entries(entries)) {
+      const builtIn = this.memberGroups().find(
+        (group) => group.entityType === key,
+      );
+      if (builtIn) {
+        snapshot.issues.push({
+          path: ["groupings", key],
+          message: `${builtIn.label} is built in; it cannot be defined here.`,
+        });
+        continue;
+      }
       const parsedKey = entityGroupingSchema.shape.key.safeParse(key);
       const parsed = groupingDefinitionSchema.safeParse(value);
       if (!parsedKey.success || !parsed.success) {
@@ -190,7 +240,11 @@ export class GroupingDefinitionSource {
       const candidate = { ...snapshot.groupings, [key]: parsed.data };
       try {
         this.dependencies.validate(
-          declarations(candidate, this.dependencies.getContributorTypes()),
+          declarations(
+            candidate,
+            this.dependencies.getContributorTypes(),
+            this.memberGroups(),
+          ),
         );
       } catch (error) {
         snapshot.issues.push({
@@ -208,25 +262,47 @@ export class GroupingDefinitionSource {
 function declarations(
   groupings: Record<string, GroupingDefinition>,
   contributorTypes: readonly string[],
+  memberGroups: readonly MemberGroup[],
 ): EntityGrouping[] {
-  return Object.entries(groupings).flatMap(([key, definition]) => {
+  // A collection type's own group comes first; its members are the
+  // contributing types that declare its field, never the collection itself.
+  const builtIn = memberGroups.flatMap((group) => {
     const types = contributorTypes.filter(
-      (type) => !definition.excludeTypes?.includes(type),
+      (type) => type !== group.entityType && group.types.includes(type),
     );
-    // A definition may intentionally exclude every currently installed type.
-    // Keep its source intact; it has no active schema/projection declaration.
     return types.length
       ? [
           {
-            key,
-            field: key,
-            label: definition.label,
+            key: group.entityType,
+            field: group.entityType,
+            label: group.label,
             types,
-            // Carried for readers that choose a value on a record's behalf.
-            multiple: definition.multiple,
-            ...(definition.values && { values: [...definition.values] }),
+            multiple: group.multiple,
           },
         ]
       : [];
   });
+  return [
+    ...builtIn,
+    ...Object.entries(groupings).flatMap(([key, definition]) => {
+      const types = contributorTypes.filter(
+        (type) => !definition.excludeTypes?.includes(type),
+      );
+      // A definition may intentionally exclude every currently installed type.
+      // Keep its source intact; it has no active schema/projection declaration.
+      return types.length
+        ? [
+            {
+              key,
+              field: key,
+              label: definition.label,
+              types,
+              // Carried for readers that choose a value on a record's behalf.
+              multiple: definition.multiple,
+              ...(definition.values && { values: [...definition.values] }),
+            },
+          ]
+        : [];
+    }),
+  ];
 }

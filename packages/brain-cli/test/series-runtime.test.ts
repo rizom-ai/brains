@@ -27,8 +27,8 @@ const post = defineEntity({
   metadata: z.object({
     title: z.string(),
     slug: z.string(),
-    seriesName: z.string().optional(),
-    seriesIndex: z.number().optional(),
+    series: z.array(z.string()).max(1).optional(),
+    publishedAt: z.string().optional(),
   }),
 });
 const posts = defineEntityPackage({ id: "posts", entities: [post] });
@@ -150,9 +150,21 @@ describe("the series data source", () => {
     const opened = await store();
     await create(opened, covered);
     const members = [
-      { id: "second", seriesIndex: 2, visibility: "public" },
-      { id: "first", seriesIndex: 1, visibility: "public" },
-      { id: "private", seriesIndex: 3, visibility: "restricted" },
+      {
+        id: "second",
+        publishedAt: "2026-02-01T00:00:00.000Z",
+        visibility: "public",
+      },
+      {
+        id: "first",
+        publishedAt: "2026-01-01T00:00:00.000Z",
+        visibility: "public",
+      },
+      {
+        id: "private",
+        publishedAt: "2026-03-01T00:00:00.000Z",
+        visibility: "restricted",
+      },
     ] as const;
     for (const member of members) {
       await opened.service.createEntity({
@@ -163,8 +175,8 @@ describe("the series data source", () => {
           metadata: {
             title: member.id,
             slug: member.id,
-            seriesName: "Systems",
-            seriesIndex: member.seriesIndex,
+            series: ["Systems"],
+            publishedAt: member.publishedAt,
           },
           visibility: member.visibility,
         },

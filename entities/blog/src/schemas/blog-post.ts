@@ -27,8 +27,7 @@ type BlogPostFrontmatterSchema = z.ZodObject<{
   author: z.ZodString;
   coverImageId: z.ZodOptional<z.ZodString>;
   ogImageId: z.ZodOptional<z.ZodString>;
-  seriesName: z.ZodOptional<z.ZodString>;
-  seriesIndex: z.ZodOptional<z.ZodNumber>;
+  series: z.ZodOptional<z.ZodArray<z.ZodString>>;
   ogImage: z.ZodOptional<z.ZodString>;
   canonicalUrl: z.ZodOptional<z.ZodString>;
 }>;
@@ -42,8 +41,9 @@ export const blogPostFrontmatterSchema: BlogPostFrontmatterSchema = z.object({
   author: z.string(),
   coverImageId: z.string().optional(), // References an image entity by ID
   ogImageId: z.string().optional(), // References an image entity for social/OG metadata
-  seriesName: z.string().optional(),
-  seriesIndex: z.number().optional(),
+  // The series the post belongs to, through the series group: one name at
+  // most. Its place in the series is when it was published, never stored.
+  series: z.array(z.string()).max(1).optional(),
   // SEO metadata (optional, with smart fallbacks)
   ogImage: z.string().url().optional(),
   canonicalUrl: z.string().url().optional(),

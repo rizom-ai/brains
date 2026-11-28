@@ -51,7 +51,6 @@ const seriesMemberSchema = z.object({
   frontmatter: z
     .object({
       title: z.string().nullable().default(null),
-      seriesIndex: z.number().nullable().default(null),
       excerpt: z.string().nullable().default(null),
       publishedAt: z.string().nullable().default(null),
     })

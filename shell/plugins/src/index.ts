@@ -373,6 +373,7 @@ export {
   type EntityDataSourceDefinition,
   type EntityDataSourceInput,
   type EntityDetailContext,
+  type EntityListContext,
 } from "./public/entity-data-source";
 export { defineSharedState, type SharedState } from "./public/shared-state";
 // A first-party site's runtime, and how the brain registers it.

@@ -36,7 +36,7 @@ describe("a post in the blog's feed", () => {
 
   it("names its series as the category", () => {
     expect(
-      postFeedItem(post({ seriesName: "Cartoons" }), {
+      postFeedItem(post({ series: ["Cartoons"] }), {
         environment: "production",
       }),
     ).toMatchObject({ category: "Cartoons" });

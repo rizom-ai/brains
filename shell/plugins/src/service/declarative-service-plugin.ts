@@ -58,6 +58,7 @@ import {
   SingleUseStore,
 } from "@brains/utils/single-use-store";
 import { z } from "@brains/utils/zod";
+import { getArrayElement, unwrapField } from "@brains/utils/zod-introspect";
 import { emptyPluginState } from "../base/empty-state";
 import {
   SYSTEM_CHANNELS,
@@ -2478,6 +2479,13 @@ function entityShapesOf(context: ServicePluginContext): ServiceEntityShapes {
       context.entities.getAdapter(type)?.hasBody !== false,
     hasCoverImage: (type: string) =>
       context.entities.getAdapter(type)?.supportsCoverImage === true,
+    declaresNameList: (type: string, field: string) => {
+      const declared =
+        context.entities.getAdapter(type)?.frontmatterSchema?.shape[field];
+      if (declared === undefined) return false;
+      const element = getArrayElement(unwrapField(declared).inner);
+      return unwrapField(element).inner instanceof z.ZodString;
+    },
     metadataFromFrontmatter: (type: string) =>
       context.entities.getAdapter(type)?.metadataFromFrontmatter === true,
     folderTitles: (type: string) => {

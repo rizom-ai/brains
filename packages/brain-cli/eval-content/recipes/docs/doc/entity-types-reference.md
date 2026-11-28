@@ -396,13 +396,12 @@ Key frontmatter:
 - `excerpt`
 - `author`
 - `coverImageId`
-- `seriesName`
-- `seriesIndex`
+- `series`: the one series the post is in, as a list of one name. Its place in the series is not stored: published posts come by when they were published, drafts after.
 - SEO fields: `ogImage`, `canonicalUrl`
 
 ### `series`
 
-Series entities group related posts/content.
+Series entities group related posts/content. A type joins a series by declaring a `series` field, a list of names, in its own frontmatter; Studio shows the built-in Series group for it.
 
 Key frontmatter/body:
 

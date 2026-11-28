@@ -110,7 +110,7 @@ describe("series projection rule", () => {
         entity({
           id: "post-1",
           entityType: "post",
-          metadata: { title: "Post one", seriesName: "Systems" },
+          metadata: { title: "Post one", series: ["Systems"] },
         }),
       ]),
       signal,
@@ -141,13 +141,13 @@ describe("series projection rule", () => {
           metadata: {
             title: "Post one",
             excerpt: "First",
-            seriesName: "Systems",
+            series: ["Systems"],
           },
         }),
         entity({
           id: "deck-1",
           entityType: "deck",
-          metadata: { title: "Deck one", seriesName: "Practice" },
+          metadata: { title: "Deck one", series: ["Practice"] },
         }),
       ]),
       signal,
@@ -191,7 +191,7 @@ describe("series projection rule", () => {
         entity({
           id: "post-1",
           entityType: "post",
-          metadata: { title: "Post one", seriesName: "Systems" },
+          metadata: { title: "Post one", series: ["Systems"] },
         }),
         entity({
           id: "systems",
@@ -243,7 +243,7 @@ describe("series projection rule on declared series reads", () => {
       entity({
         id: "post-1",
         entityType: "post",
-        metadata: { title: "Post one", seriesName: "Systems" },
+        metadata: { title: "Post one", series: ["Systems"] },
       }),
     ];
     const reads: ListEntitiesRequest[] = [];
@@ -354,7 +354,7 @@ describe("series projection rule on declared series reads", () => {
         entity({
           id: "post-1",
           entityType: "post",
-          metadata: { title: "Post one", seriesName: "Systems" },
+          metadata: { title: "Post one", series: ["Systems"] },
         }),
       ]),
       signal,

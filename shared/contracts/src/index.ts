@@ -547,3 +547,9 @@ export {
   CANONICAL_BUNDLE_IDS,
   type CanonicalBundleId,
 } from "./capability-bundles";
+export {
+  compareBySeriesPosition,
+  getSeriesName,
+  parseSeriesFields,
+  type SeriesSourceFields,
+} from "./series-membership";

@@ -76,14 +76,13 @@ const post: ClassRow = {
   entityType: "post",
   id: "city-notes",
   content:
-    "---\ntitle: City Notes\nslug: city-notes\nstatus: published\npublishedAt: '2025-01-01T00:00:00.000Z'\nexcerpt: About the city.\nauthor: Alex\nseriesName: Cities\nseriesIndex: 2\n---\n## City\n\nHarbourside body\n",
+    "---\ntitle: City Notes\nslug: city-notes\nstatus: published\npublishedAt: '2025-01-01T00:00:00.000Z'\nexcerpt: About the city.\nauthor: Alex\nseries:\n  - Cities\n---\n## City\n\nHarbourside body\n",
   metadata: {
     title: "City Notes",
     slug: "city-notes",
     status: "published",
     publishedAt: "2025-01-01T00:00:00.000Z",
-    seriesName: "Cities",
-    seriesIndex: 2,
+    series: ["Cities"],
   },
   word: "Harbourside",
   derived: { excerpt: "About the city.", author: "Alex" },

@@ -35,7 +35,7 @@ export function postFeedItem(
     content: post.content,
     author: metadata.author,
     publishedAt: metadata.publishedAt ?? post.created,
-    ...(metadata.seriesName && { category: metadata.seriesName }),
+    ...(metadata.series?.[0] && { category: metadata.series[0] }),
   };
 }
 
