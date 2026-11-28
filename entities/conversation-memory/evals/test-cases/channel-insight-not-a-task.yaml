@@ -1,0 +1,28 @@
+id: channel-insights-not-a-task
+name: Leaves work someone takes on to the action items when insights are picked up
+description: >-
+  Jo takes on a fix with a date and Niels reports a finished task. Neither is
+  an insight or a decision.
+type: plugin
+tags:
+  - conversation-memory
+  - channel-insights
+plugin: conversation-memory
+handler: extractChannelDecisions
+
+input:
+  insights: true
+  messages:
+    - speaker: Jo
+      userId: usr_jo
+      content: I'll fix the sign-up form by Friday.
+    - speaker: Niels
+      userId: usr_niels
+      content: Great. I updated the pricing page yesterday, by the way.
+
+expectedOutput:
+  validateEach:
+    - path: insightCount
+      equals: 0
+    - path: count
+      equals: 0

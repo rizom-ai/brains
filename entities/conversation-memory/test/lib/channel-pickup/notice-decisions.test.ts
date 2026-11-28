@@ -69,6 +69,46 @@ describe("a notice that announces decisions", () => {
     });
   });
 
+  it("announces an insight as it does a decision", () => {
+    expect(
+      noticeContent({
+        key: "1-3",
+        cards: [
+          {
+            id: "i-1",
+            kind: "insight",
+            title: "Freelancers leave at the company field",
+          },
+        ],
+      }),
+    ).toEqual({
+      title: "Insight recorded",
+      lines: ["Insight: Freelancers leave at the company field"],
+      actions: [
+        {
+          label: "Undo: Freelancers leave at the company field",
+          value: "i-1",
+        },
+      ],
+    });
+  });
+
+  it("is titled by neither when it holds a decision and an insight", () => {
+    expect(
+      noticeContent({
+        key: "1-3",
+        cards: [
+          { id: "d-1", kind: "decision", title: "Drop the company field" },
+          {
+            id: "i-1",
+            kind: "insight",
+            title: "Freelancers leave at the company field",
+          },
+        ],
+      }).title,
+    ).toBe("Picked up from this channel");
+  });
+
   it("strikes through a decision someone took back", () => {
     expect(
       noticeContent({

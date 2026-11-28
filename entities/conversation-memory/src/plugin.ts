@@ -72,6 +72,7 @@ export const conversationMemoryPackage: ServicePackageDefinition<
 
       registerChannelActionItems(runtime, context, {
         visibility: setupContext.config.memoryVisibility,
+        captureInsights: setupContext.config.captureInsights,
       });
 
       registerActionItemsWidget(runtime, context);
@@ -88,11 +89,10 @@ export const conversationMemoryPackage: ServicePackageDefinition<
   (slotContext) => {
     const runtime = serviceRuntime(slotContext);
     return [
-      channelPickupJobHandler(
-        runtime,
-        memoryContextOf(runtime),
-        slotContext.config.memoryVisibility,
-      ),
+      channelPickupJobHandler(runtime, memoryContextOf(runtime), {
+        visibility: slotContext.config.memoryVisibility,
+        captureInsights: slotContext.config.captureInsights,
+      }),
     ];
   },
 );

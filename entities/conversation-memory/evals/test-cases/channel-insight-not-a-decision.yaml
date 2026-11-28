@@ -1,0 +1,30 @@
+id: channel-insights-not-a-decision
+name: Keeps a decision a decision when insights are picked up
+description: >-
+  Niels proposes dropping the company field and Jo accepts. That is a
+  decision, and it is not also recorded as an insight.
+type: plugin
+tags:
+  - conversation-memory
+  - channel-insights
+plugin: conversation-memory
+handler: extractChannelDecisions
+
+input:
+  insights: true
+  messages:
+    - speaker: Niels
+      userId: usr_niels
+      content: Shall we just drop the company field from the sign-up form?
+    - speaker: Jo
+      userId: usr_jo
+      content: Yes, let's drop it.
+
+expectedOutput:
+  validateEach:
+    - path: count
+      equals: 1
+    - path: insightCount
+      equals: 0
+    - path: decisions[0].title
+      matches: "[Cc]ompany"

@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, mock } from "bun:test";
 import type { Conversation, Message } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 import { decisionSchema, type DecisionEntity } from "../../../src";
-import type { FoundDecision } from "../../../src/lib/channel-pickup/decision-extractor";
+import type { FoundClaim } from "../../../src/lib/channel-pickup/claim-extractor";
 import {
   channelBookmarks,
   pickUpChannel,
@@ -70,15 +70,16 @@ function decided(
   position: number,
   title: string,
   messages: Message[] = channel,
-): FoundDecision {
+): FoundClaim {
   const source = messages[position - 1];
   if (!source) throw new Error(`No message ${position}`);
   return {
+    kind: "decision",
     title,
     text: `${title}.`,
     sourcePosition: position,
     source,
-    decidedBy: [
+    by: [
       { identity: { kind: "user", userId: "usr_niels" }, displayName: "Niels" },
     ],
   };
@@ -86,7 +87,7 @@ function decided(
 
 describe("picking up a channel's decisions", () => {
   let harness: ReturnType<typeof createPluginHarness>;
-  let found: FoundDecision[];
+  let found: FoundClaim[];
   let extract: ReturnType<typeof mock>;
   let deps: ChannelPickupDeps;
   /** The messages the conversation holds right now. */
@@ -107,7 +108,7 @@ describe("picking up a channel's decisions", () => {
     await installConversationMemory(harness);
     found = [];
     said = channel;
-    extract = mock(async () => ({ decisions: found }));
+    extract = mock(async () => ({ claims: found }));
     const pickup: ChannelPickupDeps = {
       conversations: {
         get: async (id) => (id === CONVERSATION ? conversation : null),
@@ -122,7 +123,7 @@ describe("picking up a channel's decisions", () => {
       extractor: {
         extract: async () => ({ items: [], updates: [], withdrawals: [] }),
       },
-      decisions: { extract },
+      claims: { extractor: { extract }, insights: false },
       entityService: harness.getEntityService(),
       visibility: "shared",
       members: async () => [],
@@ -207,7 +208,7 @@ describe("picking up a channel's decisions", () => {
 
     // The decisions of the range being processed are not "already recorded".
     const [input] = extract.mock.calls[1] ?? [];
-    expect(input.decisions).toEqual([]);
+    expect(input.recorded).toEqual([]);
     expect(await decisions()).toHaveLength(1);
     expect((await deps.bookmarks.get(CONVERSATION))?.notices).toEqual([
       {
@@ -250,9 +251,11 @@ describe("picking up a channel's decisions", () => {
     expect(
       input.fresh.map((entry: { position: number }) => entry.position),
     ).toEqual([3]);
-    expect(input.decisions).toEqual([
+    expect(input.insights).toBe(false);
+    expect(input.recorded).toEqual([
       {
         id: "keep-the-newsletter-weekly",
+        kind: "decision",
         title: "Keep the newsletter weekly",
         text: "It stays weekly.",
       },
@@ -326,7 +329,10 @@ describe("picking up a channel's decisions", () => {
       await pickUpChannel(deps, CONVERSATION, "job-1");
       said = later;
       found = [
-        { ...decided(5, "Keep the company field", later), replaces: OLD },
+        {
+          ...decided(5, "Keep the company field", later),
+          replaces: { id: OLD, kind: "decision" },
+        },
       ];
     }
 
@@ -407,7 +413,7 @@ describe("picking up a channel's decisions", () => {
   });
 
   it("picks up no decisions when the pickup is given no decision extractor", async () => {
-    const { decisions: _none, ...cardsOnly } = deps;
+    const { claims: _none, ...cardsOnly } = deps;
 
     const result = await pickUpChannel(cardsOnly, CONVERSATION, "job-1");
 

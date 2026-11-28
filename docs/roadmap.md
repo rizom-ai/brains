@@ -94,7 +94,7 @@ The substrate exists: scoped conversation memory, first-pass attribution, config
 
 Plans:
 
-- [conversation-insights.md](./plans/conversation-insights.md) — insights picked up from team channels beside the action items and decisions the channel pickup already makes, behind a setting and tried on the team brain first; no new summaries.
+- [conversation-insights.md](./plans/conversation-insights.md) — insights picked up from team channels beside action items and decisions, built behind `captureInsights`; a two-week trial on the team brain decides whether it becomes a default.
 - [team-posture-capabilities.md](./plans/team-posture-capabilities.md) — parked, demand-gated team-native capabilities such as meeting notes, decision records, team Q&A, and digest.
 
 ### 3. Trust and identity

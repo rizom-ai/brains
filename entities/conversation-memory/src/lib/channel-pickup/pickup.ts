@@ -20,9 +20,9 @@ import {
 } from "@brains/sdk/internal/service-runtime";
 import type { MemoryEntityService } from "../memory-context";
 import { z } from "@brains/utils/zod";
-import type { ChannelDecisionExtractor } from "./decision-extractor";
+import type { ChannelClaimExtractor } from "./claim-extractor";
 import { chatMessageIdOf, sourcePositionOf } from "./messages";
-import { pickUpDecisions } from "./decisions";
+import { pickUpClaims } from "./claims";
 import type {
   BrainMember,
   ChannelActionItemExtractor,
@@ -36,7 +36,9 @@ type ChannelNoticeSchema = z.ZodObject<{
   cards: z.ZodArray<
     z.ZodObject<{
       id: z.ZodString;
-      kind: z.ZodOptional<z.ZodEnum<{ decision: "decision" }>>;
+      kind: z.ZodOptional<
+        z.ZodEnum<{ decision: "decision"; insight: "insight" }>
+      >;
       title: z.ZodString;
       owner: z.ZodOptional<z.ZodString>;
       dueDate: z.ZodOptional<z.ZodString>;
@@ -68,7 +70,7 @@ const channelNoticeSchema: ChannelNoticeSchema = z.object({
     z.object({
       id: z.string().min(1),
       /** What the line announces; a card when it says nothing. */
-      kind: z.enum(["decision"]).optional(),
+      kind: z.enum(["decision", "insight"]).optional(),
       title: z.string().min(1),
       owner: z.string().min(1).optional(),
       /** When the card is due, as YYYY-MM-DD. */
@@ -124,10 +126,10 @@ const channelBookmarkSchema: ChannelBookmarkSchema = z.object({
   /** Cards someone took back with Undo; the pickup never writes them again. */
   rejected: z.array(z.string().min(1)).optional(),
   /**
-   * The decisions the pickup wrote, by id: the hash of what it wrote. A
-   * decision whose content still has that hash is the pickup's own; one
+   * The decisions and insights the pickup wrote, by id: the hash of what it
+   * wrote. One whose content still has that hash is the pickup's own; one
    * edited since, or not listed here, belongs to whoever edited it. Kept
-   * here, not in the decision: its file states nothing a person does not
+   * here, not in the entity: its file states nothing a person does not
    * read.
    */
   own: z.record(z.string(), z.string()).optional(),
@@ -185,8 +187,13 @@ export interface ChannelPickupDeps {
   >;
   bookmarks: ClassRuntimeStateStore<ChannelBookmark>;
   extractor: Pick<ChannelActionItemExtractor, "extract">;
-  /** Finds the decisions the messages settle; none are picked up without it. */
-  decisions?: Pick<ChannelDecisionExtractor, "extract"> | undefined;
+  /**
+   * Finds the decisions the messages settle and, when insights are picked
+   * up, the insights they reach; neither is picked up without it.
+   */
+  claims?:
+    | { extractor: Pick<ChannelClaimExtractor, "extract">; insights: boolean }
+    | undefined;
   entityService: Pick<
     MemoryEntityService,
     | "createEntity"
@@ -214,6 +221,8 @@ export type ChannelPickupResult =
       created: string[];
       /** The decisions it recorded, when it picks decisions up. */
       decisions?: string[];
+      /** The insights it recorded, when it picks insights up. */
+      insights?: string[];
     }
   | { status: "up-to-date" }
   | { status: "claimed-elsewhere" }
@@ -225,7 +234,7 @@ const DEFAULT_CONTEXT_SIZE = 10;
 const OWN_CARDS_LIMIT = 30;
 /** How many taken-back cards a conversation remembers. */
 export const REJECTED_KEPT = 500;
-/** How many of its most recent decisions a conversation's pickup can still call its own. */
+/** How many of its most recent decisions and insights a conversation's pickup can still call its own. */
 export const OWN_KEPT = 200;
 
 /** A system actor, for a message whose speaker was not recorded. */
@@ -346,7 +355,8 @@ function announcement(card: NoticeCard): string {
 }
 
 /**
- * Turn a space conversation's unprocessed messages into cards and decisions.
+ * Turn a space conversation's unprocessed messages into cards, decisions and,
+ * when insights are picked up, insights.
  * The bookmark alone decides what is processed: a run claims the range,
  * writes what it found (idempotently, by source message), and only then
  * moves the bookmark.
@@ -517,10 +527,11 @@ export async function pickUpChannel(
     Promise.resolve([]),
   );
 
-  const decided = deps.decisions
-    ? await pickUpDecisions(
+  const decided = deps.claims
+    ? await pickUpClaims(
         {
-          extractor: deps.decisions,
+          extractor: deps.claims.extractor,
+          insights: deps.claims.insights,
           entityService: deps.entityService,
           visibility: deps.visibility,
         },
@@ -539,18 +550,18 @@ export async function pickUpChannel(
       )
     : undefined;
   const decisionCards = [
-    ...(decided?.decisions ?? []).map(
-      ({ id, title, sourceMessageId }): NoticeCard => ({
+    ...(decided?.claims ?? []).map(
+      ({ kind, id, title, sourceMessageId }): NoticeCard => ({
         id,
-        kind: "decision",
+        kind,
         title,
         ...(sourceMessageId ? { sourceMessageId } : {}),
       }),
     ),
     ...(decided?.superseded ?? []).map(
-      ({ id, title, sourceMessageId }): NoticeCard => ({
+      ({ kind, id, title, sourceMessageId }): NoticeCard => ({
         id,
-        kind: "decision",
+        kind,
         title,
         ...(sourceMessageId ? { sourceMessageId } : {}),
         change: "superseded",
@@ -559,7 +570,7 @@ export async function pickUpChannel(
   ];
   // What the pickup wrote or rewrote, by the hash it now has.
   const written = Object.fromEntries(
-    [...(decided?.decisions ?? []), ...(decided?.superseded ?? [])].flatMap(
+    [...(decided?.claims ?? []), ...(decided?.superseded ?? [])].flatMap(
       ({ id, hash }) => (hash ? [[id, hash]] : []),
     ),
   );
@@ -624,9 +635,15 @@ export async function pickUpChannel(
     through: count,
     created: results,
     ...(decided && {
-      decisions: decided.decisions.flatMap(({ id, hash }) =>
-        hash ? [id] : [],
+      decisions: decided.claims.flatMap(({ kind, id, hash }) =>
+        kind === "decision" && hash ? [id] : [],
       ),
     }),
+    ...(decided &&
+      deps.claims?.insights && {
+        insights: decided.claims.flatMap(({ kind, id, hash }) =>
+          kind === "insight" && hash ? [id] : [],
+        ),
+      }),
   };
 }

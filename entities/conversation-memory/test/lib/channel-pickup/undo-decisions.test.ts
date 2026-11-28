@@ -1,6 +1,11 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
-import { decisionSchema, type DecisionEntity } from "../../../src";
+import {
+  decisionSchema,
+  insightSchema,
+  type DecisionEntity,
+  type InsightEntity,
+} from "../../../src";
 import {
   channelBookmarks,
   type ChannelNotice,
@@ -136,6 +141,56 @@ describe("undoing a decision from its notice", () => {
     expect((await deps.bookmarks.get(ROOM))?.own).toEqual({
       [OLD]: restored?.contentHash ?? "",
     });
+  });
+
+  it("removes an insight only the pickup wrote", async () => {
+    const INSIGHT = "discord-1466-insight-3-1";
+    await harness.getEntityService().createEntity({
+      entity: {
+        id: INSIGHT,
+        entityType: "insight",
+        visibility: "shared",
+        content: "# Freelancers leave at the company field\n\nThey have none.",
+        metadata: {
+          conversationId: ROOM,
+          channelId: "discord:guild-1:1466",
+          interfaceType: "discord",
+          status: "active",
+        },
+      },
+    });
+    const read = async (): Promise<InsightEntity | null> =>
+      harness
+        .getEntityService()
+        .getEntity(
+          { entityType: "insight", id: INSIGHT, visibilityScope: "restricted" },
+          insightSchema,
+        );
+    await deps.bookmarks.set(ROOM, {
+      processedThrough: 3,
+      notices: [
+        {
+          key: "1-3",
+          cards: [
+            {
+              id: INSIGHT,
+              kind: "insight",
+              title: "Freelancers leave at the company field",
+            },
+          ],
+          postedMessageId: "notice-1",
+        },
+      ],
+      own: { [INSIGHT]: (await read())?.contentHash ?? "" },
+    });
+
+    const answer = await undoNoticeCard(deps, { ...click, value: INSIGHT });
+
+    expect(await read()).toBeNull();
+    expect(answer?.lines).toEqual([
+      "~~Freelancers leave at the company field~~ · removed by Jo",
+    ]);
+    expect((await deps.bookmarks.get(ROOM))?.rejected).toEqual([INSIGHT]);
   });
 
   it("keeps a decision someone has edited", async () => {

@@ -14,9 +14,8 @@ import {
 } from "@brains/contracts";
 import { ACTION_ITEM_ENTITY_TYPE } from "@brains/action-items";
 import { z } from "@brains/utils/zod";
-import { DECISION_ENTITY_TYPE } from "../constants";
 import type { MemoryContext } from "../memory-context";
-import { ChannelDecisionExtractor } from "./decision-extractor";
+import { ChannelClaimExtractor, type ClaimKind } from "./claim-extractor";
 import {
   ChannelActionItemExtractor,
   type BrainMember,
@@ -41,6 +40,7 @@ import {
   wakeUpChannel,
   type ChannelTriggerDeps,
 } from "./trigger";
+import { claimEntityType } from "./own-claims";
 import { undoNoticeCard } from "./undo";
 
 /** What the channel pickup reaches through the package's runtime. */
@@ -75,6 +75,12 @@ const evalChannelDecisionsInputSchema = z.object({
   decisions: z
     .array(z.object({ title: z.string().min(1), text: z.string().min(1) }))
     .default([]),
+  /** Insights earlier messages reached, named after the decisions: insight-1… */
+  recordedInsights: z
+    .array(z.object({ title: z.string().min(1), text: z.string().min(1) }))
+    .default([]),
+  /** Whether insights are picked up beside decisions. */
+  insights: z.boolean().default(false),
   messages: evalChannelMessagesSchema,
 });
 
@@ -139,7 +145,7 @@ export function channelPickupJobHandler(
     MemoryContext,
     "logger" | "entityService" | "conversations" | "ai"
   >,
-  visibility: ContentVisibility,
+  options: { visibility: ContentVisibility; captureInsights: boolean },
 ): FirstPartyJobHandler {
   const deps = {
     conversations: context.conversations,
@@ -149,12 +155,15 @@ export function channelPickupJobHandler(
       context,
       context.logger.child("ChannelActionItemExtractor"),
     ),
-    decisions: new ChannelDecisionExtractor(
-      context,
-      context.logger.child("ChannelDecisionExtractor"),
-    ),
+    claims: {
+      extractor: new ChannelClaimExtractor(
+        context,
+        context.logger.child("ChannelClaimExtractor"),
+      ),
+      insights: options.captureInsights,
+    },
     entityService: context.entityService,
-    visibility,
+    visibility: options.visibility,
   };
   return firstPartyJobHandler({
     type: CHANNEL_ACTION_ITEMS_JOB_TYPE,
@@ -178,7 +187,7 @@ export function registerChannelActionItems(
     MemoryContext,
     "logger" | "entityService" | "conversations" | "ai"
   >,
-  options: { visibility: ContentVisibility },
+  options: { visibility: ContentVisibility; captureInsights: boolean },
 ): void {
   const bookmarks = channelBookmarks(runtime.classRuntimeState);
   const trigger: ChannelTriggerDeps = {
@@ -197,8 +206,7 @@ export function registerChannelActionItems(
     bookmarks,
     cardExists: async (id, kind): Promise<boolean> =>
       (await context.entityService.getEntity({
-        entityType:
-          kind === "decision" ? DECISION_ENTITY_TYPE : ACTION_ITEM_ENTITY_TYPE,
+        entityType: kind ? claimEntityType(kind) : ACTION_ITEM_ENTITY_TYPE,
         id,
         visibilityScope: internalFullScope(
           "card existence check for channel notices",
@@ -279,31 +287,48 @@ export function registerChannelActionItems(
   runtime.evalHandler("extractChannelDecisions", async (input: unknown) => {
     const parsed = evalChannelDecisionsInputSchema.parse(input);
     const positioned = evalChannelMessages(parsed.messages);
-    const { decisions } = await new ChannelDecisionExtractor(
+    const { claims } = await new ChannelClaimExtractor(
       context,
-      context.logger.child("ChannelDecisionExtractor"),
+      context.logger.child("ChannelClaimExtractor"),
     ).extract({
       context: positioned.slice(0, parsed.processedThrough),
       fresh: positioned.slice(parsed.processedThrough),
-      decisions: parsed.decisions.map((decision, index) => ({
-        ...decision,
-        id: `decision-${index + 1}`,
-      })),
+      recorded: [
+        ...parsed.decisions.map((decision, index) => ({
+          ...decision,
+          kind: "decision" as const,
+          id: `decision-${index + 1}`,
+        })),
+        ...parsed.recordedInsights.map((insight, index) => ({
+          ...insight,
+          kind: "insight" as const,
+          id: `insight-${index + 1}`,
+        })),
+      ],
+      insights: parsed.insights,
     });
+    const reported = (kind: ClaimKind): Record<string, unknown>[] =>
+      claims
+        .filter((claim) => claim.kind === kind)
+        .map((claim) => ({
+          title: claim.title,
+          text: claim.text,
+          message: claim.sourcePosition,
+          replaces: claim.replaces?.id ?? "none",
+          // Names in order, as one line an eval can match.
+          [kind === "insight" ? "statedBy" : "decidedBy"]:
+            claim.by
+              .map((person) => person.displayName ?? "")
+              .sort()
+              .join(", ") || "nobody",
+        }));
+    const decisions = reported("decision");
+    const insights = reported("insight");
     return {
       count: decisions.length,
-      decisions: decisions.map((decision) => ({
-        title: decision.title,
-        text: decision.text,
-        message: decision.sourcePosition,
-        replaces: decision.replaces ?? "none",
-        // Names in order, as one line an eval can match.
-        decidedBy:
-          decision.decidedBy
-            .map((person) => person.displayName ?? "")
-            .sort()
-            .join(", ") || "nobody",
-      })),
+      decisions,
+      insightCount: insights.length,
+      insights,
     };
   });
   runtime.recurringCheck({
