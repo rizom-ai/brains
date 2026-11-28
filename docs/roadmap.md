@@ -132,7 +132,7 @@ Plans:
 - [operator-console-pwa.md](./plans/operator-console-pwa.md) — optional network-first installable shell without an offline-authoring claim.
 - [email-reply-drafts.md](./plans/email-reply-drafts.md) — a reply the brain writes on request is saved into the mailbox's Drafts folder and sent from the mail program; the brain never sends a reply, and the dormant send backend is removed.
 - [whatsapp-interface.md](./plans/whatsapp-interface.md) — WhatsApp direct messages and groups through our own Baileys adapter in `@brains/chat`: unofficial, on a dedicated number.
-- [matrix-messaging.md](./plans/matrix-messaging.md) — the brain's own Matrix homeserver at its domain, which the brain provisions and the deploy runs beside it; a configuration-free default recipient and the first real deploy remain.
+- [matrix-messaging.md](./plans/matrix-messaging.md) — the brain's own Matrix homeserver at its domain, live on smoke and rizom-team; a passkey sign-in on a deployed brain remains.
 - [brain-web-chat-sdk-adapter.md](./plans/brain-web-chat-sdk-adapter.md) — parked strategy for deeper Chat SDK semantic alignment.
 - [chat-interface-forms-modals.md](./plans/chat-interface-forms-modals.md) — parked transport-neutral structured forms.
 - [message-feedback.md](./plans/message-feedback.md) — parked transport-neutral response feedback pending a real sink.

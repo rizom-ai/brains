@@ -1,5 +1,15 @@
 # @brains/quiz
 
+## 0.2.0-alpha.801
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.801
+  - @brains/content-formatters@0.2.0-alpha.801
+  - @brains/forms@0.2.0-alpha.801
+  - @brains/utils@0.2.0-alpha.801
+
 ## 0.2.0-alpha.800
 
 ### Patch Changes
