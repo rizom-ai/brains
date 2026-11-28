@@ -148,7 +148,11 @@ describe("What we do", () => {
       expect(html).toContain(
         `<a class="tf-index__tile" href="#${id}"><span class="tf-index__n">${n}</span><span class="tf-index__title">${title}</span></a>`,
       );
-      expect(html).toContain(`<article id="${id}" class="tf-service">`);
+      expect(html).toMatch(
+        new RegExp(
+          `<article id="${id}" class="tf-service tf-service--(mustard|red|mint)">`,
+        ),
+      );
     }
   });
 

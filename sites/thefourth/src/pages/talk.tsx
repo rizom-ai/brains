@@ -298,6 +298,13 @@ export const talkRoute: RouteDefinitionInput = pageRoute(
     title: "Let’s talk — The Fourth",
     description:
       "Tell The Fourth what you are working on and who needs to understand it.",
+    translations: {
+      "zh-TW": {
+        title: "Let’s talk — The Fourth",
+        description:
+          "第一步很簡單：告訴我們你在做什麼、誰需要理解它，我們會誠實告訴你幫不幫得上忙。",
+      },
+    },
   },
   [
     { id: "intro", template: "page:intro", content: talkContent.intro },
