@@ -12,7 +12,6 @@ describe("@rizom/site-rizom-ai", () => {
       "writing",
       "docs",
       "work",
-      "foundation",
     ]);
     expect(site.routes[0]?.path).toBe("/");
     // Every page is authored schema-first, so content travels via `sections`.
@@ -68,14 +67,7 @@ describe("@rizom/site-rizom-ai", () => {
       "roster",
       "closer",
     ]);
-    expect(byId("foundation")?.sections?.map((s) => s.id)).toEqual([
-      "hero",
-      "research",
-      "pullquote",
-      "chapters",
-      "support",
-      "follow",
-    ]);
+    expect(byId("foundation")).toBeUndefined();
   });
 
   test("writing is one archive over the essays and presentations; the network page is gone", () => {

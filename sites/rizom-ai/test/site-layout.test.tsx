@@ -2,7 +2,7 @@
 import { describe, expect, test } from "bun:test";
 import { renderToStaticMarkup as render } from "react-dom/server";
 import { createSiteLayout, threeSiteFooter } from "../src/site-layout";
-import { foundationOrganism } from "../src/story/foundation-organism";
+import { workOrganism } from "../src/story/work-organism";
 import type { RizomLayoutProps } from "../src/rizom";
 
 const siteInfo: RizomLayoutProps["siteInfo"] = {
@@ -29,7 +29,7 @@ const FoundationLayout = createSiteLayout({
   footerNote:
     "The Rizom Foundation owns the code, the method and the Rizom name.",
   figures: {
-    "/": { className: "foundation-org", organism: foundationOrganism },
+    "/": { className: "work-org", organism: workOrganism },
   },
 });
 
@@ -98,7 +98,7 @@ describe("one of the three sites", () => {
   });
 
   test("tells its story pages beside its drawing and leaves the others plain", () => {
-    expect(page("/")).toContain('class="figure foundation-org" data-stage="0"');
+    expect(page("/")).toContain('class="figure work-org" data-stage="0"');
     expect(page("/common-sense")).not.toContain('class="story"');
   });
 });

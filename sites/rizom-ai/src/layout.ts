@@ -1,6 +1,5 @@
 import { createSiteLayout, type Room, type SiteLayout } from "./site-layout";
 import { brainOrganism } from "./story/brain-organism";
-import { foundationOrganism } from "./story/foundation-organism";
 import { livingOrganism } from "./story/living-organism";
 import { workOrganism } from "./story/work-organism";
 
@@ -13,9 +12,6 @@ import { workOrganism } from "./story/work-organism";
 // brass, the theme's default.
 function activeRoom(path: string): Room {
   if (path === "/work" || path.startsWith("/work/")) return "work";
-  if (path === "/foundation" || path.startsWith("/foundation/")) {
-    return "foundation";
-  }
   return "brain";
 }
 
@@ -26,7 +22,12 @@ export const AiLayout: SiteLayout = createSiteLayout({
   barLinks: [
     { label: "Brain", href: "/brain", room: "brain" },
     { label: "Work", href: "/work", room: "work" },
-    { label: "Foundation", href: "/foundation", room: "foundation" },
+    // The Foundation speaks on its own site.
+    {
+      label: "Foundation",
+      href: "https://rizom.foundation",
+      room: "foundation",
+    },
     { label: "Writing", href: "/writing" },
     { label: "Ask", href: "/ask" },
   ],
@@ -50,10 +51,13 @@ export const AiLayout: SiteLayout = createSiteLayout({
     {
       heading: "The foundation",
       links: [
-        { label: "Manifesto", href: "/foundation" },
+        {
+          label: "Common Sense",
+          href: "https://rizom.foundation/common-sense",
+        },
         { label: "Writing", href: "/writing" },
-        { label: "Events", href: "/foundation#events" },
-        { label: "Support", href: "/foundation#support" },
+        { label: "Events", href: "https://rizom.foundation/#events" },
+        { label: "Support", href: "https://rizom.foundation/support" },
       ],
     },
   ],
@@ -63,10 +67,6 @@ export const AiLayout: SiteLayout = createSiteLayout({
     "/": { className: "living-org", organism: livingOrganism },
     "/brain": { className: "brain-org", organism: brainOrganism },
     "/work": { className: "work-org", organism: workOrganism },
-    "/foundation": {
-      className: "foundation-org",
-      organism: foundationOrganism,
-    },
     "/ask": null,
   },
 });

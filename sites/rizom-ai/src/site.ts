@@ -14,7 +14,6 @@ import { foundationSections } from "./foundation";
 import { aiRoutes } from "./routes";
 import { rizomAtprotoLexiconStaticAssets } from "./rizom/runtime/plugin";
 import { brainOrganism } from "./story/brain-organism";
-import { foundationOrganism } from "./story/foundation-organism";
 import { livingOrganism } from "./story/living-organism";
 import { workOrganism } from "./story/work-organism";
 
@@ -28,7 +27,7 @@ export const rizomAiSite: SitePackage = createRizomSite({
   // docs.rizom.ai, whose layout has neither; here the bar has the toggle and
   // the site footer follows, so the docs' own footer stays hidden.
   themeOverride: ".docs-handbook footer {\n  display: none;\n}\n",
-  organisms: [livingOrganism, brainOrganism, workOrganism, foundationOrganism],
+  organisms: [livingOrganism, brainOrganism, workOrganism],
   // rizom.ai is the authority for the ATProto lexicons and serves them.
   staticAssets: rizomAtprotoLexiconStaticAssets,
   runtime: {

@@ -31,7 +31,12 @@ function bar(html: string): string {
 describe("the one bar", () => {
   test("carries the rooms and the archive, one call to action and the theme toggle", () => {
     const html = bar(renderChrome("/"));
-    for (const href of ["/brain", "/work", "/foundation", "/writing"]) {
+    for (const href of [
+      "/brain",
+      "/work",
+      "https://rizom.foundation",
+      "/writing",
+    ]) {
       expect(html).toContain(`href="${href}"`);
     }
     expect(html).toContain('href="/work#audit"');
@@ -62,17 +67,16 @@ describe("the one bar", () => {
 
   test("keeps the room's light on the page", () => {
     expect(renderChrome("/work")).toContain('data-room="work"');
-    expect(renderChrome("/foundation")).toContain('data-room="foundation"');
     expect(renderChrome("/")).toContain('data-room="brain"');
   });
 });
 
 describe("the story shell", () => {
   test("wraps a story page's sections beside its drawing, with the reading thread", () => {
-    const html = renderChrome("/foundation");
+    const html = renderChrome("/work");
     expect(html).toContain('class="story"');
     expect(html).toContain('class="chapters"');
-    expect(html).toContain('class="figure foundation-org" data-stage="0"');
+    expect(html).toContain('class="figure work-org" data-stage="0"');
     expect(html).toContain('class="rail"');
     expect(html).toContain('href="/styles/story.css"');
     expect(html).not.toContain("mycelium-rail");
@@ -135,5 +139,21 @@ describe("the story shell", () => {
     );
     expect(footer).toMatch(/<a href="\/contact"[^>]*>Contact<\/a>/);
     expect(footer).not.toContain("#contact");
+  });
+});
+
+// The Foundation speaks on its own site; rizom.ai sends its readers there.
+describe("the Foundation, on rizom.foundation", () => {
+  test("the bar and the footer link rizom.foundation, not a room here", () => {
+    const html = renderChrome("/");
+    expect(html).not.toMatch(/href="\/foundation/);
+    const footer = html.slice(html.indexOf("<footer"));
+    expect(footer).toContain('href="https://rizom.foundation/common-sense"');
+    expect(footer).toContain('href="https://rizom.foundation/#events"');
+    expect(footer).toContain('href="https://rizom.foundation/support"');
+  });
+
+  test("rizom.ai has no Foundation page told beside a drawing", () => {
+    expect(renderChrome("/foundation")).not.toContain("<figure");
   });
 });

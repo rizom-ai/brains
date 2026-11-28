@@ -122,21 +122,4 @@ export const aiRoutes: RouteDefinitionInput[] = [
       { id: "closer", template: "work:closer" },
     ],
   },
-  {
-    id: "foundation",
-    path: "/foundation",
-    title: "Rizom Foundation",
-    description:
-      "Essays, gatherings, and stewardship of open AI infrastructure",
-    layout: "default",
-    navigation: { show: false },
-    sections: [
-      { id: "hero", template: "foundation:hero" },
-      { id: "research", template: "foundation:research" },
-      { id: "pullquote", template: "foundation:pullquote" },
-      { id: "chapters", template: "foundation:chapters" },
-      { id: "support", template: "foundation:support" },
-      { id: "follow", template: "foundation:follow" },
-    ],
-  },
 ];
