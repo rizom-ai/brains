@@ -45,6 +45,34 @@ export class DriveUnavailableError extends Error {
 
 const UNAVAILABLE: ReadonlySet<number> = new Set([429, 502, 503, 504]);
 
+type RelatedEntrySchema = z.ZodObject<{
+  path: z.ZodString;
+  title: z.ZodString;
+  entityType: z.ZodString;
+  distance: z.ZodNumber;
+}>;
+
+const relatedEntrySchema: RelatedEntrySchema = z.object({
+  /** The entry's file, as a path below the drive's root. */
+  path: z.string().min(1),
+  title: z.string(),
+  entityType: z.string().min(1),
+  /** How far it is from the entry asked about; nearer is smaller. */
+  distance: z.number(),
+});
+
+/** An entry the brain holds near another. */
+export type RelatedEntry = z.output<RelatedEntrySchema>;
+
+const relatedAnswerSchema: z.ZodObject<{
+  related: z.ZodArray<RelatedEntrySchema>;
+  indexed: z.ZodDefault<z.ZodBoolean>;
+}> = z.object({
+  related: z.array(relatedEntrySchema),
+  /** False from a brain that keeps no index of meaning: it has nothing to measure by. */
+  indexed: z.boolean().default(true),
+});
+
 /** The app password is wrong, revoked or expired. */
 export class DriveAuthError extends Error {
   constructor() {
@@ -284,6 +312,29 @@ export class DriveClient {
     // Anything but the description (a proxy's page, say) is no description.
     const parsed = vaultShapesSchema.safeParse(jsonOf(textOf(response.body)));
     return parsed.success ? parsed.data.shapes : undefined;
+  }
+
+  /**
+   * The entries the brain holds nearest to the entry at a path, closest
+   * first. `"unsupported"` from a brain from before it could tell,
+   * `"unindexed"` from one that keeps no index of meaning; nothing when what
+   * came back is no answer (a proxy's page, say).
+   */
+  async related(
+    path: string,
+    limit: number,
+  ): Promise<RelatedEntry[] | "unsupported" | "unindexed" | undefined> {
+    const response = await this.send("GET", ".brain/related", {}, undefined, {
+      path,
+      limit: String(limit),
+    });
+    if (response.status === 404 || response.status === 405) {
+      return "unsupported";
+    }
+    if (response.status !== 200) return undefined;
+    const parsed = relatedAnswerSchema.safeParse(jsonOf(textOf(response.body)));
+    if (!parsed.success) return undefined;
+    return parsed.data.indexed ? parsed.data.related : "unindexed";
   }
 
   /**

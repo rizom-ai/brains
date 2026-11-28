@@ -29,6 +29,7 @@ import { acceptConnect, originOf, type PendingConnect } from "./connect";
 import { getErrorMessage } from "@brains/utils/error";
 import { explorerMarks } from "./explorer-marks";
 import { FileListMarks } from "./file-list-marks";
+import { RELATED_VIEW, RelatedView } from "./related-view";
 import {
   ConflictModal,
   DeletesModal,
@@ -176,6 +177,24 @@ export default class RizomBrainPlugin extends Plugin {
       name: "Show files that are not synced",
       callback: () => this.showFiles(),
     });
+    this.registerView(
+      RELATED_VIEW,
+      (leaf) =>
+        new RelatedView(leaf, async (path) => this.getEngine()?.related(path)),
+    );
+    this.addCommand({
+      id: "show-related",
+      name: "Show what your brain relates to this note",
+      callback: () => void this.showRelated(),
+    });
+    // The panel follows the note that is open.
+    this.registerEvent(
+      this.app.workspace.on("file-open", (file) => {
+        for (const leaf of this.app.workspace.getLeavesOfType(RELATED_VIEW)) {
+          if (leaf.view instanceof RelatedView) void leaf.view.show(file);
+        }
+      }),
+    );
     this.addCommand({
       id: "settle-conflicts",
       name: "Compare and settle conflicts",
@@ -532,6 +551,16 @@ export default class RizomBrainPlugin extends Plugin {
         ? "Compare and settle conflicts"
         : "Show files that are not synced with your brain",
     );
+  }
+
+  /** Open the panel of related entries in the right sidebar. */
+  async showRelated(): Promise<void> {
+    const { workspace } = this.app;
+    const open = workspace.getLeavesOfType(RELATED_VIEW)[0];
+    const leaf = open ?? workspace.getRightLeaf(false);
+    if (!leaf) return;
+    if (!open) await leaf.setViewState({ type: RELATED_VIEW, active: true });
+    await workspace.revealLeaf(leaf);
   }
 
   /** Count the conflicts that wait, for the status bar. */

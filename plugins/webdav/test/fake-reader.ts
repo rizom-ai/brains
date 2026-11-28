@@ -3,6 +3,7 @@ import {
   type BaseEntity,
 } from "@brains/sdk/internal/entity-runtime";
 import {
+  SemanticIndexingDisabledError,
   isVisibleWithinScope,
   type AssetRef,
 } from "@brains/sdk/internal/service-runtime";
@@ -41,6 +42,13 @@ export function fakeReader(options: {
   assets?: Record<string, Uint8Array>;
   /** Types whose store writes YAML files (docs/external-plugin-authoring.md, The stored format). */
   yamlTypes?: string[];
+  /** What the store answers as nearest to any entity, closest first; and what it was asked. */
+  nearest?: {
+    answer: Array<{ entityType: string; entityId: string; distance: number }>;
+    asked: Array<Parameters<DavReader["nearestToEntity"]>[0]>;
+    /** A brain that keeps no semantic index refuses to tell. */
+    unindexed?: boolean;
+  };
 }): DavReader {
   const visible = (scope: Scope | undefined): BaseEntity[] =>
     options.entities.filter((candidate) =>
@@ -53,6 +61,15 @@ export function fakeReader(options: {
     options.assets?.[ref];
 
   return {
+    nearestToEntity: async (
+      request,
+    ): ReturnType<DavReader["nearestToEntity"]> => {
+      if (options.nearest?.unindexed) throw new SemanticIndexingDisabledError();
+      options.nearest?.asked.push(request);
+      return (options.nearest?.answer ?? [])
+        .filter((near) => request.types.includes(near.entityType))
+        .slice(0, request.limit);
+    },
     getEntityTypes: () => types,
     getEntityTypeConfig: (
       type,

@@ -89,6 +89,11 @@ const DEFAULT_CHANGES_WAIT = 25;
  */
 const CONFLICTS_PATH = [".brain", "conflicts"];
 
+/** Where a sync client asks which entries are nearest to one. */
+const RELATED_PATH = [".brain", "related"];
+const DEFAULT_RELATED = 10;
+const MAX_RELATED = 25;
+
 /** Where a sync client reads the brain's types; nobody else sees it. */
 const VAULT_SHAPES_PATH = [".brain", "vault-shapes.json"];
 
@@ -380,6 +385,36 @@ async function changesAnswer(
   });
 }
 
+/**
+ * The entries nearest to the entry at the path a sync client names, as its
+ * person may see them. A path that names no entry they may see has none:
+ * answered all the same, so the client can tell a brain that has this call
+ * from one that has not.
+ */
+async function relatedAnswer(dav: DavRequest): Promise<Response> {
+  const query = new URL(dav.request.url).searchParams;
+  const path = query.get("path") ?? "";
+  if (path === "") {
+    return new Response("Name the file with ?path=", { status: 400 });
+  }
+  const asked = Number(query.get("limit") ?? DEFAULT_RELATED);
+  const limit =
+    Number.isInteger(asked) && asked > 0
+      ? Math.min(asked, MAX_RELATED)
+      : DEFAULT_RELATED;
+  const related = (await dav.tree.related(path.split("/"), limit)) ?? [];
+  // A brain that keeps no index of meaning says so: none is not "nothing
+  // is related".
+  const body =
+    related === "unindexed"
+      ? { related: [], indexed: false }
+      : { related, indexed: true };
+  return new Response(JSON.stringify(body), {
+    status: 200,
+    headers: { "Content-Type": "application/json; charset=utf-8" },
+  });
+}
+
 /** What a listing says of a node, as this request's app password sees it. */
 async function propsFor(
   server: DavServer,
@@ -428,6 +463,9 @@ async function read(
   withBody: boolean,
 ): Promise<Response> {
   const { shapes, changes } = server.options;
+  if (dav.sync && dav.path?.segments.join("/") === RELATED_PATH.join("/")) {
+    return relatedAnswer(dav);
+  }
   if (
     dav.sync &&
     changes !== undefined &&
