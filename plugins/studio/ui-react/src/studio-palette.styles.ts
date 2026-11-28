@@ -74,7 +74,9 @@ export const paletteStyles: Record<
   },
   active: { backgroundColor: "var(--console-accent-soft)" },
   title: { fontSize: 14 },
-  sub: { fontSize: 12, color: "var(--console-text-muted)" },
+  // Muted text falls short of contrast at this size on the dialog; the
+  // smaller size alone marks it as secondary.
+  sub: { fontSize: 12, color: "var(--console-text)" },
   kbd: {
     marginInlineStart: "auto",
     fontFamily: "var(--console-mono)",
