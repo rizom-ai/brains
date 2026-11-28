@@ -1,7 +1,7 @@
 {
   "name": "@brains/seminar",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.791",
+  "version": "0.2.0-alpha.792",
   "description": "Seminar entity type — one question put to the brain's approved peers and kept as their exchange",
   "dependencies": {
     "@brains/content-formatters": "workspace:*",

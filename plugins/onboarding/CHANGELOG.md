@@ -1,5 +1,13 @@
 # @brains/onboarding
 
+## 0.2.0-alpha.792
+
+### Patch Changes
+
+- Updated dependencies [[`a52afd8`](https://github.com/rizom-ai/brains/commit/a52afd851a87a7333c51dfec485d59136dbf418e)]:
+  - @brains/contracts@0.2.0-alpha.792
+  - @brains/sdk@0.2.0-alpha.792
+
 ## 0.2.0-alpha.791
 
 ### Patch Changes

@@ -1,5 +1,13 @@
 # @brains/contracts
 
+## 0.2.0-alpha.792
+
+### Patch Changes
+
+- [#1073](https://github.com/rizom-ai/brains/pull/1073) [`a52afd8`](https://github.com/rizom-ai/brains/commit/a52afd851a87a7333c51dfec485d59136dbf418e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A brain answers another brain's Matrix bot only when that bot mentions it. Matrix marks everyone but a brain's own bot as unknown, so a peer brain's bot, `@_brain` on its own server, counted as a person: once it mentioned a brain in their shared room, that brain answered everything it said after, and two brains could keep answering each other. A brain's bot on any server is now a bot to routing, like a bot on Discord or Slack.
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.792
+
 ## 0.2.0-alpha.791
 
 ### Patch Changes
