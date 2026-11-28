@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 
 import { join } from "node:path";
+import { lintNodeOptions } from "./lint-node-options.ts";
 
 const rawArgs = process.argv.slice(2);
 // The pre-commit hook passes --skip-scripts when nothing under scripts/ is
@@ -12,13 +13,7 @@ const turboArgs = separatorIndex === -1 ? args : args.slice(0, separatorIndex);
 const eslintArgs = separatorIndex === -1 ? [] : args.slice(separatorIndex + 1);
 
 const compatLoader = join(import.meta.dir, "eslint-typescript-compat.cjs");
-const existingNodeOptions = process.env.NODE_OPTIONS?.trim();
-const nodeOptions = [
-  existingNodeOptions,
-  `--require=${compatLoader}`,
-]
-  .filter(Boolean)
-  .join(" ");
+const nodeOptions = lintNodeOptions(process.env.NODE_OPTIONS, compatLoader);
 
 const proc = Bun.spawn(
   [
