@@ -361,6 +361,14 @@ export class DriveClient {
     return (await this.send("DELETE", path, { "If-Match": ifMatch })).status;
   }
 
+  /**
+   * Tell the brain a conflict is settled: its Inbox entry is dismissed. The
+   * status says how it went; a brain from before this answers 404 or 405.
+   */
+  async settleConflict(conflictId: string): Promise<number> {
+    return (await this.send("DELETE", `.brain/conflicts/${conflictId}`)).status;
+  }
+
   /** Rename a file; the status and the brain's reason say what happened. */
   async move(
     from: string,

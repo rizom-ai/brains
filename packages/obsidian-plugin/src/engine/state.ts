@@ -19,6 +19,21 @@ const pathStateSchema: PathStateSchema = z.object({
 
 export type PathState = z.output<PathStateSchema>;
 
+type OpenConflictSchema = z.ZodObject<{
+  path: z.ZodString;
+  copy: z.ZodString;
+  conflictId: z.ZodOptional<z.ZodString>;
+}>;
+
+const openConflictSchema: OpenConflictSchema = z.object({
+  /** The file both sides changed; the brain's version is in it. */
+  path: z.string().min(1),
+  /** The person's version, in the Conflicts folder. */
+  copy: z.string().min(1),
+  /** The brain's Inbox entry that keeps the person's version, when it has one. */
+  conflictId: z.string().min(1).optional(),
+});
+
 type SyncStateSchema = z.ZodObject<{
   initialized: z.ZodDefault<z.ZodBoolean>;
   address: z.ZodDefault<z.ZodString>;
@@ -30,6 +45,8 @@ type SyncStateSchema = z.ZodObject<{
   deletes: z.ZodDefault<z.ZodArray<z.ZodString>>;
   generated: z.ZodDefault<z.ZodRecord<z.ZodString, z.ZodString>>;
   templateFolderSet: z.ZodDefault<z.ZodBoolean>;
+  conflicts: z.ZodDefault<z.ZodArray<OpenConflictSchema>>;
+  settled: z.ZodDefault<z.ZodArray<z.ZodString>>;
 }>;
 
 export const syncStateSchema: SyncStateSchema = z.object({
@@ -48,6 +65,10 @@ export const syncStateSchema: SyncStateSchema = z.object({
   generated: z.record(z.string(), z.string()).default({}),
   /** Whether Obsidian's Templates was pointed at the brain's templates; done once. */
   templateFolderSet: z.boolean().default(false),
+  /** Conflicts the person has not chosen a version for yet. */
+  conflicts: z.array(openConflictSchema).default([]),
+  /** Inbox entries of conflicts the person settled here, still to be dismissed in the brain. */
+  settled: z.array(z.string()).default([]),
 });
 
 export type SyncState = z.output<SyncStateSchema>;
@@ -63,6 +84,8 @@ export function emptyState(address = ""): SyncState {
     deletes: [],
     generated: {},
     templateFolderSet: false,
+    conflicts: [],
+    settled: [],
   };
 }
 

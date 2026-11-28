@@ -9,7 +9,7 @@ You need a Rizom brain at version 0.2.0-alpha.769 or later with its drive turned
 - Notes and images go both ways between the vault and your brain. A change made in your brain reaches the vault in about a second.
 - Your vault mirrors your brain: notes at the top, other entries in a folder per type. A file your brain has no place for stays in the vault only, and is listed with the reason.
 - Renaming a note here renames it in your brain. A rename your brain cannot take is undone, with a notice.
-- When a note was changed here and in your brain, your brain's version goes into the vault. Yours is copied to `Conflicts/` and kept in your brain's Inbox. Nothing is lost.
+- When a note was changed here and in your brain, your brain's version goes into the vault. Yours is copied to `Conflicts/` and kept in your brain's Inbox. Nothing is lost. A notice, the status bar and the command "Compare and settle conflicts" show both versions side by side; choosing one clears the copy, and the Inbox entry too when your brain is recent enough to be told.
 - A note deleted here is deleted in your brain. Files that went missing some other way, and more than five deletes at once, wait for your yes.
 - The first sync shows what it will download, upload and replace, and starts only when you say so.
 - Your brain's templates, field definitions and table views are written to `_obsidian/`.

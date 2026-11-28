@@ -1,4 +1,7 @@
-import type { RecordConflictRequest } from "@brains/contracts";
+import type {
+  RecordConflictRequest,
+  ResolveConflictRequest,
+} from "@brains/contracts";
 import { memoryMountBases, type MountBases } from "./dav-mounts";
 import type { KeptStore } from "./dav-kept";
 import type { MountView } from "./dav-saves";
@@ -61,6 +64,13 @@ export interface DavRoutesOptions {
   ) => Promise<string | undefined>;
   /** Whether a conflict still waits to be resolved; taken as yes when not given. */
   conflictPending?: (conflictId: string) => Promise<boolean>;
+  /**
+   * Settle a conflict as a person, answering why not when it is refused;
+   * nothing settles one when not given, or when it answers undefined.
+   */
+  resolveConflict?: (
+    request: ResolveConflictRequest,
+  ) => Promise<{ resolved: true } | { message: string } | undefined>;
   /** The brain's types, as a sync client writes templates, fileClasses and bases from them. */
   shapes?: VaultShapeSource;
   /** Which types changed, for sync clients that wait to be told. */
@@ -72,6 +82,12 @@ const CHANGES_PATH = [".brain", "changes"];
 /** The longest a sync client is kept waiting for a change, in seconds. */
 const MAX_CHANGES_WAIT = 50;
 const DEFAULT_CHANGES_WAIT = 25;
+
+/**
+ * Where a sync client says a conflict is settled: its person chose between
+ * the two versions there. A DELETE of one conflict's id below it.
+ */
+const CONFLICTS_PATH = [".brain", "conflicts"];
 
 /** Where a sync client reads the brain's types; nobody else sees it. */
 const VAULT_SHAPES_PATH = [".brain", "vault-shapes.json"];
@@ -655,9 +671,53 @@ async function holdSave(
   });
 }
 
+/** The conflict a path names for settling, when it names exactly one. */
+function settledConflict(segments: string[]): string | undefined {
+  const [first, second, conflictId, ...rest] = segments;
+  return first === CONFLICTS_PATH[0] &&
+    second === CONFLICTS_PATH[1] &&
+    conflictId !== undefined &&
+    rest.length === 0
+    ? conflictId
+    : undefined;
+}
+
+/**
+ * Dismiss a conflict whose person chose elsewhere which version stays. The
+ * conflict service decides who may: the person whose edit it holds, or an
+ * admin. One that is already settled is answered the same.
+ */
+async function settleConflict(
+  server: DavServer,
+  dav: DavRequest,
+  conflictId: string,
+): Promise<Response> {
+  const { conflictPending, resolveConflict } = server.options;
+  if (conflictPending && !(await conflictPending(conflictId))) {
+    return noContent();
+  }
+  const answer = await resolveConflict?.({
+    conflictId,
+    action: "keep-current",
+    userId: dav.grant.principal.userId,
+    permissionLevel: dav.grant.principal.permissionLevel,
+  });
+  if (!answer) {
+    return new Response("Conflicts cannot be settled here right now.", {
+      status: 503,
+    });
+  }
+  return "message" in answer
+    ? new Response(answer.message, { status: 409 })
+    : noContent();
+}
+
 async function remove(server: DavServer, dav: DavRequest): Promise<Response> {
   const { path } = dav;
   if (!path) return notFound();
+  const conflictId =
+    dav.sync && !path.asFolder ? settledConflict(path.segments) : undefined;
+  if (conflictId !== undefined) return settleConflict(server, dav, conflictId);
   const userId = dav.grant.principal.userId;
   if (server.scratch.removeFolder(userId, path.segments)) return noContent();
   if (!path.asFolder && isScratchPath(path.segments)) {

@@ -11,3 +11,35 @@
   color: var(--text-muted);
   font-size: var(--font-ui-smaller);
 }
+
+.rizom-brain-conflict-modal {
+  width: min(92vw, 1000px);
+}
+
+.rizom-brain-compare {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--size-4-4);
+}
+
+/* Side by side where there is room; one above the other on a phone. */
+.rizom-brain-version {
+  flex: 1 1 18em;
+  min-width: 0;
+}
+
+.rizom-brain-version-text {
+  max-height: 45vh;
+  overflow: auto;
+  padding: var(--size-4-2);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  font-family: var(--font-monospace);
+  font-size: var(--font-ui-smaller);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.rizom-brain-differs {
+  background-color: var(--text-highlight-bg);
+}

@@ -53,6 +53,19 @@ export type Notice =
   /** A rename the brain refused was undone in the vault. */
   | { kind: "rename-undone"; from: string; to: string; reason: string };
 
+/** A conflict the person has not chosen a version for yet. */
+export interface OpenConflict {
+  /** The file both sides changed. */
+  path: string;
+  /** The person's version, in the Conflicts folder. */
+  copy: string;
+  flavor: "text" | "image";
+  /** The brain's version, now in the file; absent when the file is gone. */
+  brains?: string;
+  /** The person's version; text files only. */
+  yours?: string;
+}
+
 /** Deletions the sync did not make on its own, for the person to decide. */
 export interface DeleteDecision {
   /** Files missing from the vault without the plugin seeing them deleted, or too many at once. */
@@ -173,6 +186,8 @@ export class SyncEngine {
   sync(): Promise<SyncReport> {
     return this.exclusive(() =>
       this.guarded(async (context) => {
+        await this.forgetRemovedCopies(context.state);
+        await this.tellSettled(context.state);
         const remote = await this.listRemote(context);
         if (!context.state.initialized) {
           context.report.status = "first-sync";
@@ -243,8 +258,11 @@ export class SyncEngine {
           const file = local.get(path);
           if (!file) continue;
           const bytes = await file.bytes();
-          await this.vault.write(conflictCopyPath(path, this.now()), bytes);
+          const copy = conflictCopyPath(path, this.now());
+          await this.vault.write(copy, bytes);
           await this.download(context, path, file);
+          // The person chooses between the two when they have a moment.
+          keepOpen(context.state, { path, copy });
         }
         await this.together(plan.download, (path) =>
           this.download(context, path, undefined),
@@ -269,24 +287,122 @@ export class SyncEngine {
           return;
         }
         await this.replayRenames(context);
-        const placement = placementOf(path, context.types);
-        if (placement.kind !== "synced" || this.vault.isBusy(path)) return;
-        const stat = await this.vault.stat(path);
-        if (!stat) return;
-        const bytes = await this.vault.read(path);
-        const file = this.localFile(placement.flavor, stat, bytes);
-        const hash = await sha256Hex(bytes);
-        const known = context.state.paths[path];
-        if (known?.hash === hash) return;
-        await this.loadVaultImages(context);
-        await this.upload(
-          context,
-          path,
-          { ...file, hash },
-          known ? { ifMatch: known.etag } : { ifAbsent: true },
-        );
+        if (this.vault.isBusy(path)) return;
+        await this.uploadChanged(context, path);
       }),
     );
+  }
+
+  /** Upload one file when it differs from the version last agreed on. */
+  private async uploadChanged(context: Context, path: string): Promise<void> {
+    const placement = placementOf(path, context.types);
+    if (placement.kind !== "synced") return;
+    const stat = await this.vault.stat(path);
+    if (!stat) return;
+    const bytes = await this.vault.read(path);
+    const file = this.localFile(placement.flavor, stat, bytes);
+    const hash = await sha256Hex(bytes);
+    const known = context.state.paths[path];
+    if (known?.hash === hash) return;
+    await this.loadVaultImages(context);
+    await this.upload(
+      context,
+      path,
+      { ...file, hash },
+      known ? { ifMatch: known.etag } : { ifAbsent: true },
+    );
+  }
+
+  /**
+   * The conflicts waiting for the person, each with both versions. One whose
+   * copy is no longer in the Conflicts folder was dealt with by hand.
+   */
+  openConflicts(): Promise<OpenConflict[]> {
+    return this.exclusive(async () => {
+      const state = await this.store.load();
+      const open = await Promise.all(
+        state.conflicts.map(
+          async ({ path, copy }): Promise<OpenConflict | undefined> => {
+            if (!(await this.vault.exists(copy))) return undefined;
+            if (extensionOf(path) !== ".md") {
+              return { path, copy, flavor: "image" };
+            }
+            const yours = textOf(await this.vault.read(copy));
+            return (await this.vault.exists(path))
+              ? {
+                  path,
+                  copy,
+                  flavor: "text",
+                  brains: textOf(await this.vault.read(path)),
+                  yours,
+                }
+              : { path, copy, flavor: "text", yours };
+          },
+        ),
+      );
+      return open.filter((conflict) => conflict !== undefined);
+    });
+  }
+
+  /**
+   * The person chose a version. Keeping the brain's removes the copy;
+   * keeping theirs puts the copy's content in the file, which then goes to
+   * the brain as any edit does. Either way the brain's Inbox entry is
+   * dismissed. The choice is made in the vault at once; what the brain has
+   * to hear waits for the next sync when it cannot be reached.
+   */
+  settleConflict(copy: string, keep: "brain" | "mine"): Promise<SyncReport> {
+    return this.exclusive(async () => {
+      const state = await this.store.load();
+      const conflict = state.conflicts.find((one) => one.copy === copy);
+      if (!conflict) return newReport();
+      if (await this.vault.exists(copy)) {
+        if (keep === "mine") {
+          await this.vault.write(conflict.path, await this.vault.read(copy));
+          // Back, if the person had deleted it: it is not to be deleted.
+          state.deletes = state.deletes.filter(
+            (path) => path !== conflict.path,
+          );
+        }
+        await this.vault.trash(copy);
+      }
+      state.conflicts = state.conflicts.filter((one) => one.copy !== copy);
+      if (conflict.conflictId !== undefined) {
+        state.settled.push(conflict.conflictId);
+      }
+      await this.store.save(state);
+      return this.guarded(async (context) => {
+        // Dismissed before the upload: an upload that loses again is kept
+        // as a conflict of its own.
+        await this.tellSettled(context.state);
+        if (keep === "mine" && context.state.initialized) {
+          await this.uploadChanged(context, conflict.path);
+        }
+      });
+    });
+  }
+
+  /** Conflicts whose copy the person removed by hand are theirs no longer. */
+  private async forgetRemovedCopies(state: SyncState): Promise<void> {
+    const kept = await Promise.all(
+      state.conflicts.map(async (conflict) =>
+        (await this.vault.exists(conflict.copy)) ? conflict : undefined,
+      ),
+    );
+    state.conflicts = kept.filter((conflict) => conflict !== undefined);
+  }
+
+  /**
+   * Dismiss the Inbox entries of conflicts settled here. Whatever the brain
+   * answers, it is told once: a brain that cannot be told, or refuses,
+   * keeps its entry for the Inbox. One that cannot be reached is told at
+   * the next sync.
+   */
+  private async tellSettled(state: SyncState): Promise<void> {
+    for (const conflictId of [...state.settled]) {
+      await this.drive.settleConflict(conflictId);
+      state.settled = state.settled.filter((id) => id !== conflictId);
+    }
   }
 
   /** The person deleted a file in the vault: its entry goes at the next sync. */
@@ -303,10 +419,13 @@ export class SyncEngine {
   noteRenamed(from: string, to: string): Promise<void> {
     return this.exclusive(async () => {
       const state = await this.store.load();
+      // A conflict waiting on the file is still about it under its new name.
+      const followed = state.conflicts.some((one) => one.path === from);
+      state.conflicts = movedConflicts(state.conflicts, from, to);
       const pending = state.renames.some((rename) => rename.to === from);
-      if (!state.paths[from] && !pending) return;
-      state.renames.push({ from, to });
-      await this.store.save(state);
+      const known = state.paths[from] !== undefined || pending;
+      if (known) state.renames.push({ from, to });
+      if (known || followed) await this.store.save(state);
     });
   }
 
@@ -940,7 +1059,7 @@ export class SyncEngine {
     });
     if (result.status === 201 || result.status === 204) {
       if (result.stored === "conflict" || result.conflictId !== undefined) {
-        await this.giveWay(context, path, local, true);
+        await this.giveWay(context, path, local, result.conflictId ?? true);
         return;
       }
       const etag = result.etag;
@@ -975,13 +1094,18 @@ export class SyncEngine {
     }
   }
 
-  /** A version lost: copy it to Conflicts, and take the brain's in its place. */
+  /**
+   * A version lost: copy it to Conflicts, and take the brain's in its place.
+   * `kept` says whether the brain's Inbox keeps it too, and as which conflict
+   * when the brain named one.
+   */
   private async giveWay(
     context: Context,
     path: string,
     local: Uint8Array,
-    inInbox: boolean,
+    kept: string | boolean,
   ): Promise<void> {
+    const inInbox = kept !== false;
     const copy = conflictCopyPath(path, this.now());
     await this.vault.write(copy, local);
     const current: LocalFile = {
@@ -992,6 +1116,11 @@ export class SyncEngine {
       bytes: async (): Promise<Uint8Array> => local,
     };
     await this.download(context, path, current);
+    keepOpen(context.state, {
+      path,
+      copy,
+      ...(typeof kept === "string" && { conflictId: kept }),
+    });
     context.report.notices.push({ kind: "conflict", path, copy, inInbox });
   }
 
@@ -1098,6 +1227,11 @@ export class SyncEngine {
     ) {
       await this.vault.rename(rename.to, rename.from);
     }
+    context.state.conflicts = movedConflicts(
+      context.state.conflicts,
+      rename.to,
+      rename.from,
+    );
     context.report.notices.push({
       kind: "rename-undone",
       from: rename.from,
@@ -1105,6 +1239,28 @@ export class SyncEngine {
       reason,
     });
   }
+}
+
+/** Record a conflict as waiting for the person; a copy is recorded once. */
+function keepOpen(
+  state: SyncState,
+  conflict: SyncState["conflicts"][number],
+): void {
+  state.conflicts = [
+    ...state.conflicts.filter((one) => one.copy !== conflict.copy),
+    conflict,
+  ];
+}
+
+/** Conflicts on a file that moved, as conflicts on it where it is now. */
+function movedConflicts(
+  conflicts: SyncState["conflicts"],
+  from: string,
+  to: string,
+): SyncState["conflicts"] {
+  return conflicts.map((conflict) =>
+    conflict.path === from ? { ...conflict, path: to } : conflict,
+  );
 }
 
 function stemOf(path: string): string {
