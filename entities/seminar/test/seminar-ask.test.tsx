@@ -6,14 +6,11 @@ import { seminarAskPage } from "../src/datasources/seminar-ask-datasource";
 import { SeminarAskTemplate } from "../src/templates/seminar-ask";
 import { createSeminarPlugins } from "./seminar-plugins";
 
-const peers = [
-  { agent: "karl.example", name: "Marx" },
-  { agent: "friedrich.example", name: "Nietzsche" },
-];
+const peers = ["Marx", "Nietzsche"];
 
 describe("the Ask page's data", () => {
   test("names who answers, whether asking is open, and the peers a question reaches", () => {
-    expect(seminarAskPage({ name: () => "Suspicion", peers }, true)).toEqual({
+    expect(seminarAskPage("Suspicion", true, peers)).toEqual({
       name: "Suspicion",
       askBox: true,
       peers: ["Marx", "Nietzsche"],
@@ -21,9 +18,9 @@ describe("the Ask page's data", () => {
   });
 
   test("is closed where Web Chat serves no guest box for the build", () => {
-    expect(
-      seminarAskPage({ name: () => "Suspicion", peers }, false),
-    ).toMatchObject({ askBox: false });
+    expect(seminarAskPage("Suspicion", false, peers)).toMatchObject({
+      askBox: false,
+    });
   });
 
   test("is registered beside the seminars' pages", async () => {

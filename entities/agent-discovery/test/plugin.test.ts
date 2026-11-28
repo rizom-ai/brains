@@ -1495,6 +1495,80 @@ describe("AgentDiscoveryPlugin", () => {
     await harness.reset();
   });
 
+  it("agent_connect keeps the name and the notes the owner gave an existing agent", async () => {
+    const harness = createPluginHarness<Plugin>({});
+    const fetchMock = createMockAgentCardFetch({
+      "yeehaa.io": createAgentCard("yeehaa.io"),
+    });
+
+    await installAll(harness, agentDiscoveryPlugins());
+    await installAll(harness, agentToolsPlugins({ fetch: fetchMock.fetch }));
+    await harness.getEntityService().createEntity({
+      entity: createTestAgent({
+        id: "yeehaa.io",
+        name: "Yeehaa",
+        shownAs: "The Professor",
+        url: "https://yeehaa.io/a2a",
+        status: "approved",
+        notes: "Met in Rotterdam.",
+      }),
+    });
+
+    const confirmation = await harness.executeTool("agent_connect", {
+      source: { kind: "url", url: "https://yeehaa.io" },
+    });
+    expectConfirmation(confirmation);
+    expectSuccess(
+      await harness.executeTool(
+        "agent_connect",
+        confirmationArgs(confirmation),
+      ),
+    );
+
+    const agent = await harness
+      .getEntityService()
+      .getEntity({ entityType: "agent", id: "yeehaa.io" }, agentEntitySchema);
+    expect(agent?.metadata.shownAs).toBe("The Professor");
+    expect(agent?.content).toContain("shownAs: The Professor");
+    expect(agent?.content).toContain("Met in Rotterdam.");
+    // The card's own fields are refreshed.
+    expect(agent?.content).toContain("Research topics for collaborators.");
+
+    await harness.reset();
+  });
+
+  it("keeps the name the owner shows an agent under when its ATProto card refreshes", async () => {
+    const harness = createPluginHarness<Plugin>({});
+    await installAll(harness, agentDiscoveryPlugins());
+    await harness.getEntityService().createEntity({
+      entity: createTestAgent({
+        id: "peer.example.com",
+        name: "Peer Brain",
+        shownAs: "The Peer",
+        url: "https://peer.example.com/a2a",
+        status: "approved",
+      }),
+    });
+
+    await harness.sendMessage(
+      ATPROTO_BRAIN_CARD_DISCOVERED,
+      testBrainCardPayload,
+      "atproto",
+    );
+
+    const agent = await harness
+      .getEntityService()
+      .getEntity(
+        { entityType: "agent", id: "peer.example.com" },
+        agentEntitySchema,
+      );
+    expect(agent?.metadata.shownAs).toBe("The Peer");
+    expect(agent?.content).toContain("shownAs: The Peer");
+    expect(agent?.content).toContain("Research");
+
+    await harness.reset();
+  });
+
   it("creates a discovered agent from an ATProto brain card event", async () => {
     const harness = createPluginHarness<Plugin>({});
     const events: unknown[] = [];

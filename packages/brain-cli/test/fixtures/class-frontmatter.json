@@ -2045,6 +2045,11 @@
           "type": "string",
           "description": "Name of the brain instance"
         },
+        "shownAs": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The name this brain shows the agent under, in place of its own name"
+        },
         "url": {
           "type": "string",
           "format": "uri",

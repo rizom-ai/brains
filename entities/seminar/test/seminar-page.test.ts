@@ -14,14 +14,14 @@ const turns: SeminarTurn[] = [
   {
     round: "opening",
     speaker: "friedrich.example",
-    name: "Friedrich",
+    name: "Nietzsche",
     text: "By rank.",
   },
-  { round: "opening", speaker: "karl.example", name: "Karl", text: "Opium." },
+  { round: "opening", speaker: "karl.example", name: "Marx", text: "Opium." },
   {
     round: "opening",
     speaker: "sigmund.example",
-    name: "Sigmund",
+    name: "Freud",
     text: "A wish.",
   },
   {
@@ -41,31 +41,27 @@ const turns: SeminarTurn[] = [
   {
     round: "challenge",
     speaker: "friedrich.example",
-    name: "Friedrich",
+    name: "Nietzsche",
     to: ["karl.example"],
     text: "Not only that.",
   },
   {
     round: "rejoinder",
     speaker: "karl.example",
-    name: "Karl",
+    name: "Marx",
     to: ["friedrich.example"],
     text: "Still a product.",
   },
 ];
 
-const peers = [
-  { agent: "karl.example", name: "Marx" },
-  { agent: "friedrich.example", name: "Nietzsche" },
-  { agent: "sigmund.example", name: "Freud" },
-];
+const order = ["karl.example", "friedrich.example", "sigmund.example"];
 
 describe("a seminar as its page reads it", () => {
-  it("shows each peer under the name the brain gives him, in the brain's order", () => {
+  it("shows each peer under the name the seminar was held with, in the brain's order", () => {
     const page = seminarPageOf(
       "what-is-religion",
       { frontmatter, turns },
-      peers,
+      order,
     );
 
     expect(page.speakers).toEqual([
@@ -87,33 +83,33 @@ describe("a seminar as its page reads it", () => {
 
   it("says who stood: the one the challenges answer", () => {
     expect(
-      seminarPageOf("what-is-religion", { frontmatter, turns }, peers).stands,
+      seminarPageOf("what-is-religion", { frontmatter, turns }, order).stands,
     ).toBe("Marx");
     expect(
       seminarPageOf(
         "what-is-religion",
         { frontmatter, turns: turns.slice(0, 3) },
-        peers,
+        order,
       ).stands,
     ).toBeNull();
   });
 
-  it("keeps the stored names and order on a brain that names no peers", () => {
+  it("keeps the stored order on a brain that orders no peers", () => {
     const page = seminarPageOf("what-is-religion", { frontmatter, turns }, []);
 
     expect(page.speakers.map(({ name }) => name)).toEqual([
-      "Friedrich",
-      "Karl",
-      "Sigmund",
+      "Nietzsche",
+      "Marx",
+      "Freud",
     ]);
-    expect(page.stands).toBe("Karl");
+    expect(page.stands).toBe("Marx");
   });
 
   it("keeps the rounds in order and each round's chair turns before its peers'", () => {
     const page = seminarPageOf(
       "what-is-religion",
       { frontmatter, turns },
-      peers,
+      order,
     );
 
     expect(page.turns.map(({ round, name }) => [round, name])).toEqual([
