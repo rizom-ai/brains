@@ -1,3 +1,5 @@
+import { slugify, truncateSlug } from "@brains/utils/string-utils";
+
 const WORDS = [
   "no",
   "one",
@@ -51,4 +53,20 @@ export function homeDate(
   })
     .format(new Date(iso))
     .replace(",", "");
+}
+
+/**
+ * A note written in Home's box: its first line is its title and heading, the
+ * rest its body, and its address comes from the title. None when the text
+ * has nothing to name it by.
+ */
+export function noteFromText(
+  text: string,
+): { slug: string; title: string; body: string } | null {
+  const [firstLine = "", ...lines] = text.trim().split("\n");
+  const title = firstLine.trim().slice(0, 120);
+  const slug = truncateSlug(slugify(title), 80);
+  if (!slug) return null;
+  const rest = lines.join("\n").trim();
+  return { slug, title, body: rest ? `# ${title}\n\n${rest}` : `# ${title}` };
 }

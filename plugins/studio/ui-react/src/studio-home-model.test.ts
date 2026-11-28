@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { homeDate, homeSentence } from "./studio-home-model";
+import { homeDate, homeSentence, noteFromText } from "./studio-home-model";
 
 // Home opens on one sentence that says how much needs the person, so a
 // calm day reads as calm.
@@ -25,5 +25,27 @@ describe("Home's date", () => {
     expect(homeDate("2026-11-26T17:03:00.000Z", "en-GB", "UTC")).toBe(
       "Thursday 26 November",
     );
+  });
+});
+
+describe("a note captured on Home", () => {
+  it("takes its first line as the heading and the rest as its body", () => {
+    expect(
+      noteFromText("Walkthrough capture\nA note saved from Home."),
+    ).toEqual({
+      slug: "walkthrough-capture",
+      title: "Walkthrough capture",
+      body: "# Walkthrough capture\n\nA note saved from Home.",
+    });
+    expect(noteFromText("  Just a title  ")).toEqual({
+      slug: "just-a-title",
+      title: "Just a title",
+      body: "# Just a title",
+    });
+  });
+
+  it("refuses text with nothing to name it by", () => {
+    expect(noteFromText("   ")).toBeNull();
+    expect(noteFromText("!!!")).toBeNull();
   });
 });

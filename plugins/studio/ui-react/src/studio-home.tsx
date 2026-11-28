@@ -11,15 +11,16 @@ import {
   type ReactElement,
 } from "react";
 import { STUDIO_CHAT_ROUTE_PATH } from "../../src/chat-workspace";
+import { studioEntityPath } from "../../src/studio-paths";
+import { getStudioRouterBasePath } from "./studio-router";
 import type { StudioHome, StudioHomeAttention } from "../../src/home-contract";
 import { isPlainLinkClick } from "./link-click";
 import { useStudioApi } from "./studio-api-context";
 import { homeStyles as styles } from "./studio-home.styles";
-import { homeDate, homeSentence } from "./studio-home-model";
+import { homeDate, homeSentence, noteFromText } from "./studio-home-model";
 import { editorClassName } from "./studio-editor.styles";
 import { StudioStatus } from "./studio-status";
 import { formatUpdated } from "./ui-utils";
-import { slugify, truncateSlug } from "@brains/utils/string-utils";
 
 /** How often Home asks again while it stays open. */
 const HOME_REFRESH_MS = 15_000;
@@ -218,23 +219,22 @@ function Composer(props: {
   );
   const save = useMutation({
     mutationFn: async (value: string) => {
-      const [firstLine = ""] = value.trim().split("\n");
-      const title = firstLine.trim().slice(0, 120);
-      const slug = truncateSlug(slugify(title), 80);
-      if (!slug) throw new Error("Write a few words to save a note.");
+      const note = noteFromText(value);
+      if (!note) throw new Error("Write a few words to save a note.");
+      // A note is plain Markdown: its first heading is its title.
       const result = await api.createEntity({
         entityType: "note",
-        idPath: [slug],
-        frontmatter: { title },
-        body: value.trim(),
+        idPath: [note.slug],
+        frontmatter: {},
+        body: note.body,
       });
-      return { title, entityId: result.entityId };
+      return { title: note.title, entityId: result.entityId };
     },
     onSuccess: ({ title, entityId }) => {
       setText("");
       setSaved({
         title,
-        href: `/entities/note/${encodeURIComponent(entityId)}`,
+        href: studioEntityPath(getStudioRouterBasePath(), "note", entityId),
       });
     },
   });
