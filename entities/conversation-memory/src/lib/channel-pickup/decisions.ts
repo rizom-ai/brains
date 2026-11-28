@@ -6,6 +6,7 @@ import {
 import { decisionSchema } from "../../schemas/conversation-memory";
 import { DECISION_ENTITY_TYPE } from "../constants";
 import type { MemoryEntityService } from "../memory-context";
+import { headingAndText, rewriteOwnDecision } from "./own-decisions";
 import {
   personOf,
   type ChannelDecisionExtractor,
@@ -35,13 +36,15 @@ export interface ChannelBatch {
   fresh: PositionedMessage[];
   /** What someone took back with Undo; never written again. */
   rejected: ReadonlySet<string>;
+  /** The decisions the pickup wrote, by id: the hash of what it wrote. */
+  own: Readonly<Record<string, string>>;
 }
 
 export interface DecisionPickupDeps {
   extractor: Pick<ChannelDecisionExtractor, "extract">;
   entityService: Pick<
     MemoryEntityService,
-    "createEntity" | "getEntity" | "listEntities"
+    "createEntity" | "getEntity" | "listEntities" | "updateEntity"
   >;
   /** The visibility the brain gives memory it makes. */
   visibility: ContentVisibility;
@@ -57,6 +60,22 @@ export interface PickedUpDecision {
   hash: string | undefined;
 }
 
+/** One of its own decisions a batch's new decision replaced. */
+export interface SupersededDecision {
+  id: string;
+  title: string;
+  /** The chat message that overturned it, to pin. */
+  sourceMessageId: string | undefined;
+  /** The hash it has now, still the pickup's own. */
+  hash: string;
+}
+
+export interface DecisionPickupResult {
+  /** Every decision the messages settle, for the batch's notice. */
+  decisions: PickedUpDecision[];
+  superseded: SupersededDecision[];
+}
+
 /** How many of its most recent active decisions the model sees. */
 const OWN_DECISIONS_LIMIT = 30;
 
@@ -65,19 +84,6 @@ const UNKNOWN_SPEAKER = {
   kind: "service",
   serviceId: "conversation-memory",
 } as const;
-
-/** A decision's heading and the text under it, up to its first section. */
-function headingAndText(content: string): { title: string; text: string } {
-  const lines = content.split("\n");
-  const at = lines.findIndex((line) => /^#\s+\S/.test(line));
-  if (at < 0) return { title: "", text: content.trim() };
-  const rest = lines.slice(at + 1);
-  const section = rest.findIndex((line) => /^##\s/.test(line));
-  return {
-    title: (lines[at] ?? "").replace(/^#\s+/, "").trim(),
-    text: (section < 0 ? rest : rest.slice(0, section)).join("\n").trim(),
-  };
-}
 
 /**
  * The conversation's active decisions, newest first, picked up or recorded
@@ -138,13 +144,13 @@ function named(
 /**
  * Turn a batch's new messages into decisions, each written once under an id
  * its source message gives it, so a rerun of the range writes nothing twice.
- * Returns every decision the messages settle, for the batch's notice; the
- * ones this run wrote carry the hash of what it wrote.
+ * The ones this run wrote carry the hash of what it wrote. A decision that
+ * overturns one the pickup wrote and nobody has edited supersedes it.
  */
 export async function pickUpDecisions(
   deps: DecisionPickupDeps,
   batch: ChannelBatch,
-): Promise<PickedUpDecision[]> {
+): Promise<DecisionPickupResult> {
   const { origin } = batch;
   const from = Math.min(...batch.fresh.map(({ position }) => position));
   const { decisions } = await deps.extractor.extract({
@@ -160,9 +166,11 @@ export async function pickUpDecisions(
       id,
       visibilityScope: internalFullScope("decision id collision check"),
     });
-  return named(origin.conversationId, decisions)
-    .filter(({ id }) => !batch.rejected.has(id))
-    .reduce<Promise<PickedUpDecision[]>>(async (soFar, { decision, id }) => {
+  const found = named(origin.conversationId, decisions).filter(
+    ({ id }) => !batch.rejected.has(id),
+  );
+  const picked = await found.reduce<Promise<PickedUpDecision[]>>(
+    async (soFar, { decision, id }) => {
       const created = await soFar;
       const sourceMessageId = chatMessageIdOf(decision.source);
       const exists = await stored(id);
@@ -219,5 +227,37 @@ export async function pickUpDecisions(
           hash: (await stored(id))?.contentHash,
         },
       ];
-    }, Promise.resolve([]));
+    },
+    Promise.resolve([]),
+  );
+  // Each replaced decision once, by the latest decision that replaces it.
+  const replacements = new Map(
+    found.flatMap(({ decision, id }) =>
+      decision.replaces && decision.replaces !== id
+        ? [[decision.replaces, { decision, id }] as const]
+        : [],
+    ),
+  );
+  const superseded = await [...replacements].reduce<
+    Promise<SupersededDecision[]>
+  >(async (soFar, [replaced, { decision, id }]) => {
+    const done = await soFar;
+    const rewritten = await rewriteOwnDecision(
+      deps.entityService,
+      batch.own[replaced],
+      replaced,
+      (metadata) => ({ ...metadata, status: "superseded", supersededBy: id }),
+    );
+    return rewritten
+      ? [
+          ...done,
+          {
+            id: replaced,
+            ...rewritten,
+            sourceMessageId: chatMessageIdOf(decision.source),
+          },
+        ]
+      : done;
+  }, Promise.resolve([]));
+  return { decisions: picked, superseded };
 }

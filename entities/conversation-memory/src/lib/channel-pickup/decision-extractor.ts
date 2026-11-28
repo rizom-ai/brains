@@ -41,6 +41,8 @@ export interface FoundDecision {
   source: Message;
   /** Who declared or accepted it, as far as the messages show. */
   decidedBy: MemoryActorReference[];
+  /** The id of the recorded decision it overturns, when it overturns one. */
+  replaces?: string | undefined;
 }
 
 export interface ChannelDecisionExtractionResult {
@@ -122,11 +124,12 @@ be a decision, each with:
   - "decision": a choice the group settles about what it will do or how things will be. A participant declares it for the group, or someone proposes it and another clearly accepts ("yes, let's do that");
   - "action-item": work someone takes on, is asked to do or is put in charge of ("I'll fix the form by Friday", "Alice owns the rewrite");
   - "undecided": a proposal, recommendation or opinion nobody clearly accepts ("interesting", "let's look at it some time" accept nothing);
-  - "recorded": a message that repeats, confirms or welcomes a decision the channel has already recorded;
+  - "recorded": a message that repeats, confirms or welcomes a decision the channel has already recorded. A message that overturns or changes a recorded decision is a new "decision", not this;
 - title: it in a few words, at most 80 characters;
 - text: one or two sentences saying what was decided, and why when the messages say;
 - message: the number of the new message that settles it: the declaration, or the acceptance of a proposal;
-- decidedBy: the participants (p1, p2, …) who declared or accepted it; an empty list when the messages do not show who.
+- decidedBy: the participants (p1, p2, …) who declared or accepted it; an empty list when the messages do not show who;
+- replaces: the recorded decision (d1, d2, …) it overturns or changes, so that one no longer holds; "none" when it overturns none.
 Write title and text in that language.
 Return each candidate once, however often the messages state it. Questions,
 chatter, thanks and reports of what happened are not candidates.
@@ -166,6 +169,10 @@ export class ChannelDecisionExtractor {
         .map((entry) => [entry.position, entry.message]),
     );
 
+    const recorded = new Map(
+      input.decisions.map((decision, index) => [`d${index + 1}`, decision.id]),
+    );
+
     try {
       const result = await this.context.ai.generate(
         {
@@ -196,6 +203,7 @@ export class ChannelDecisionExtractor {
               const person = people.get(ref);
               return person ? [person] : [];
             }),
+            replaces: recorded.get(found.replaces),
           },
         ];
       });

@@ -42,7 +42,11 @@ type ChannelNoticeSchema = z.ZodObject<{
       dueDate: z.ZodOptional<z.ZodString>;
       sourceMessageId: z.ZodOptional<z.ZodString>;
       change: z.ZodOptional<
-        z.ZodEnum<{ updated: "updated"; withdrawn: "withdrawn" }>
+        z.ZodEnum<{
+          updated: "updated";
+          withdrawn: "withdrawn";
+          superseded: "superseded";
+        }>
       >;
       undo: z.ZodOptional<
         z.ZodObject<{
@@ -72,7 +76,7 @@ const channelNoticeSchema: ChannelNoticeSchema = z.object({
       /** The chat message the card was found in, to pin. */
       sourceMessageId: z.string().min(1).optional(),
       /** What the batch did to an own card; absent for a card it added. */
-      change: z.enum(["updated", "withdrawn"]).optional(),
+      change: z.enum(["updated", "withdrawn", "superseded"]).optional(),
       /** What someone's Undo did: removed it, or kept it as the board changed it. */
       undo: z
         .object({
@@ -530,19 +534,34 @@ export async function pickUpChannel(
           context,
           fresh,
           rejected,
+          own: current.own ?? {},
         },
       )
     : undefined;
-  const decisionCards = (decided ?? []).map(
-    ({ id, title, sourceMessageId }): NoticeCard => ({
-      id,
-      kind: "decision",
-      title,
-      ...(sourceMessageId ? { sourceMessageId } : {}),
-    }),
-  );
+  const decisionCards = [
+    ...(decided?.decisions ?? []).map(
+      ({ id, title, sourceMessageId }): NoticeCard => ({
+        id,
+        kind: "decision",
+        title,
+        ...(sourceMessageId ? { sourceMessageId } : {}),
+      }),
+    ),
+    ...(decided?.superseded ?? []).map(
+      ({ id, title, sourceMessageId }): NoticeCard => ({
+        id,
+        kind: "decision",
+        title,
+        ...(sourceMessageId ? { sourceMessageId } : {}),
+        change: "superseded",
+      }),
+    ),
+  ];
+  // What the pickup wrote or rewrote, by the hash it now has.
   const written = Object.fromEntries(
-    (decided ?? []).flatMap(({ id, hash }) => (hash ? [[id, hash]] : [])),
+    [...(decided?.decisions ?? []), ...(decided?.superseded ?? [])].flatMap(
+      ({ id, hash }) => (hash ? [[id, hash]] : []),
+    ),
   );
 
   // Finish only while the claim is still this run's; announce everything
@@ -605,7 +624,9 @@ export async function pickUpChannel(
     through: count,
     created: results,
     ...(decided && {
-      decisions: decided.flatMap(({ id, hash }) => (hash ? [id] : [])),
+      decisions: decided.decisions.flatMap(({ id, hash }) =>
+        hash ? [id] : [],
+      ),
     }),
   };
 }

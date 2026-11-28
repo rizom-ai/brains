@@ -8,12 +8,16 @@ import type {
   ContentVisibility,
 } from "@brains/sdk/internal/service-runtime";
 import { noticeContent, withNotice } from "./notice";
+import { decisionSchema } from "../../schemas/conversation-memory";
 import { DECISION_ENTITY_TYPE } from "../constants";
+import type { MemoryEntityService } from "../memory-context";
+import { rewriteOwnDecision } from "./own-decisions";
 import { updateBookmark, type ChannelBookmark } from "./pickup";
 
 export interface ChannelUndoDeps {
   bookmarks: ClassRuntimeStateStore<ChannelBookmark>;
-  entityService: WithdrawActionItemDeps["entityService"];
+  entityService: WithdrawActionItemDeps["entityService"] &
+    Pick<MemoryEntityService, "listEntities" | "updateEntity">;
   /** The visibility the pickup gives its cards, and so the reach to find them. */
   visibility: ContentVisibility;
 }
@@ -38,6 +42,45 @@ async function takeBackDecision(
     options: { expectedContentHash: written },
   });
   return deleted ? "removed" : "kept";
+}
+
+/**
+ * Bring back the decisions a taken-back decision had superseded: each the
+ * pickup wrote and nobody has edited is active again and names no
+ * replacement. Returns their new hashes, by id.
+ */
+async function restoreSuperseded(
+  deps: ChannelUndoDeps,
+  own: Readonly<Record<string, string>>,
+  takenBack: string,
+): Promise<Record<string, string>> {
+  const replaced = await deps.entityService.listEntities(
+    {
+      entityType: DECISION_ENTITY_TYPE,
+      options: {
+        filter: {
+          metadata: { supersededBy: takenBack },
+          visibilityScope: deps.visibility,
+        },
+      },
+    },
+    decisionSchema,
+  );
+  const restored = await Promise.all(
+    replaced.map(async ({ id }) => {
+      const rewritten = await rewriteOwnDecision(
+        deps.entityService,
+        own[id],
+        id,
+        ({ supersededBy: _replacement, ...metadata }) => ({
+          ...metadata,
+          status: "active",
+        }),
+      );
+      return rewritten ? [[id, rewritten.hash] as const] : [];
+    }),
+  );
+  return Object.fromEntries(restored.flat());
 }
 
 /**
@@ -72,6 +115,10 @@ export async function undoNoticeCard(
           ).status === "kept"
         ? "kept"
         : "removed";
+  const restored =
+    card.kind === "decision" && outcome === "removed"
+      ? await restoreSuperseded(deps, bookmark?.own ?? {}, card.id)
+      : {};
   await updateBookmark(deps.bookmarks, action.conversationId, (latest) => {
     const changed = withNotice(latest, notice.key, (current) => ({
       ...current,
@@ -82,7 +129,7 @@ export async function undoNoticeCard(
       ),
     }));
     if (!changed || outcome === "kept") return changed;
-    const { [card.id]: _taken, ...own } = changed.own ?? {};
+    const { [card.id]: _taken, ...own } = { ...changed.own, ...restored };
     return {
       ...changed,
       ...(changed.own ? { own } : {}),

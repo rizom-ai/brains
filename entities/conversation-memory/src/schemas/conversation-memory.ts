@@ -13,6 +13,7 @@ type DecisionMetadataSchema = z.ZodObject<{
   interfaceType: z.ZodOptional<z.ZodString>;
   timeRange: z.ZodOptional<typeof summaryTimeRangeSchema>;
   status: z.ZodEnum<{ active: "active"; superseded: "superseded" }>;
+  supersededBy: z.ZodOptional<z.ZodString>;
   decidedBy: z.ZodOptional<z.ZodArray<typeof memoryActorReferenceSchema>>;
   mentionedBy: z.ZodOptional<z.ZodArray<typeof memoryActorReferenceSchema>>;
 }>;
@@ -41,6 +42,8 @@ export const decisionMetadataSchema: DecisionMetadataSchema = z.object({
     .optional()
     .meta({ studioWidget: "provenance" }),
   status: z.enum(["active", "superseded"]),
+  // The id of the decision that replaced a superseded one, when one did.
+  supersededBy: z.string().optional().meta({ studioWidget: "hidden" }),
   decidedBy: z
     .array(memoryActorReferenceSchema)
     .optional()
@@ -58,6 +61,7 @@ const decisionEntityMetadataParserSchema: DecisionMetadataSchema = z.object({
   interfaceType: z.string().optional(),
   timeRange: summaryTimeRangeSchema.optional(),
   status: z.enum(["active", "superseded"]),
+  supersededBy: z.string().optional(),
   decidedBy: z.array(memoryActorReferenceSchema).optional(),
   mentionedBy: z.array(memoryActorReferenceSchema).optional(),
 });

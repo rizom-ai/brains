@@ -296,6 +296,7 @@ export function registerChannelActionItems(
         title: decision.title,
         text: decision.text,
         message: decision.sourcePosition,
+        replaces: decision.replaces ?? "none",
         // Names in order, as one line an eval can match.
         decidedBy:
           decision.decidedBy

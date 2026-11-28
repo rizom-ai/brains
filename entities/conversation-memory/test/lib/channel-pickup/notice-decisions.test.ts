@@ -45,6 +45,30 @@ describe("a notice that announces decisions", () => {
     ]);
   });
 
+  it("says which decision a new one superseded, with an Undo only for the new one", () => {
+    expect(
+      noticeContent({
+        key: "4-5",
+        cards: [
+          { id: "d-2", kind: "decision", title: "Keep the company field" },
+          {
+            id: "d-1",
+            kind: "decision",
+            title: "Drop the company field",
+            change: "superseded",
+          },
+        ],
+      }),
+    ).toEqual({
+      title: "Decisions updated",
+      lines: [
+        "Decision: Keep the company field",
+        "Superseded: ~~Drop the company field~~",
+      ],
+      actions: [{ label: "Undo: Keep the company field", value: "d-2" }],
+    });
+  });
+
   it("strikes through a decision someone took back", () => {
     expect(
       noticeContent({

@@ -59,8 +59,19 @@ const channel: Message[] = [
   message(3, jo, "Yes, let's drop it."),
 ];
 
-function decided(position: number, title: string): FoundDecision {
-  const source = channel[position - 1];
+/** The channel a day later: the team comes back on what it decided. */
+const later: Message[] = [
+  ...channel,
+  message(4, niels, "We need the company name for invoicing after all."),
+  message(5, jo, "Then we keep the company field."),
+];
+
+function decided(
+  position: number,
+  title: string,
+  messages: Message[] = channel,
+): FoundDecision {
+  const source = messages[position - 1];
   if (!source) throw new Error(`No message ${position}`);
   return {
     title,
@@ -78,6 +89,8 @@ describe("picking up a channel's decisions", () => {
   let found: FoundDecision[];
   let extract: ReturnType<typeof mock>;
   let deps: ChannelPickupDeps;
+  /** The messages the conversation holds right now. */
+  let said: Message[];
 
   async function decisions(): Promise<DecisionEntity[]> {
     return harness.getEntityService().listEntities(
@@ -93,15 +106,16 @@ describe("picking up a channel's decisions", () => {
     harness = createPluginHarness({ dataDir: "/tmp/test-decision-pickup" });
     await installConversationMemory(harness);
     found = [];
+    said = channel;
     extract = mock(async () => ({ decisions: found }));
     const pickup: ChannelPickupDeps = {
       conversations: {
         get: async (id) => (id === CONVERSATION ? conversation : null),
-        countMessages: async () => channel.length,
+        countMessages: async () => said.length,
         getMessages: async (_id, options) =>
-          channel.slice(
+          said.slice(
             (options?.range?.start ?? 1) - 1,
-            options?.range?.end ?? channel.length,
+            options?.range?.end ?? said.length,
           ),
       },
       bookmarks: channelBookmarks(harness.getMockShell().getRuntimeState()),
@@ -296,6 +310,100 @@ describe("picking up a channel's decisions", () => {
 
     expect(failure).toEqual(new Error("model unavailable"));
     expect((await deps.bookmarks.get(CONVERSATION))?.processedThrough).toBe(0);
+  });
+
+  describe("when later messages overturn a decision", () => {
+    const OLD = "discord-1466-decision-3-1";
+    const NEW = "discord-1466-decision-5-1";
+
+    async function byId(id: string): Promise<DecisionEntity | undefined> {
+      return (await decisions()).find((decision) => decision.id === id);
+    }
+
+    /** The channel decided to drop the field; then it comes back on that. */
+    async function overturned(): Promise<void> {
+      found = [decided(3, "Drop the company field")];
+      await pickUpChannel(deps, CONVERSATION, "job-1");
+      said = later;
+      found = [
+        { ...decided(5, "Keep the company field", later), replaces: OLD },
+      ];
+    }
+
+    it("supersedes the decision it wrote, naming what replaced it", async () => {
+      await overturned();
+
+      await pickUpChannel(deps, CONVERSATION, "job-2");
+
+      expect((await byId(OLD))?.metadata).toMatchObject({
+        status: "superseded",
+        supersededBy: NEW,
+      });
+      expect((await byId(NEW))?.metadata.status).toBe("active");
+      const bookmark = await deps.bookmarks.get(CONVERSATION);
+      expect(bookmark?.notices?.at(-1)).toEqual({
+        key: "4-5",
+        cards: [
+          {
+            id: NEW,
+            kind: "decision",
+            title: "Keep the company field",
+            sourceMessageId: "discord-5",
+          },
+          {
+            id: OLD,
+            kind: "decision",
+            title: "Drop the company field",
+            sourceMessageId: "discord-5",
+            change: "superseded",
+          },
+        ],
+      });
+      // Both are still the pickup's own, the old one as it now reads.
+      expect(bookmark?.own).toEqual({
+        [OLD]: (await byId(OLD))?.contentHash ?? "",
+        [NEW]: (await byId(NEW))?.contentHash ?? "",
+      });
+    });
+
+    it("never changes a decision someone has edited", async () => {
+      await overturned();
+      const old = await byId(OLD);
+      if (!old) throw new Error("The first decision was not stored");
+      await harness.getEntityService().updateEntity({
+        entity: {
+          ...old,
+          content: "# Drop the company field\n\nOnly for freelancers.",
+        },
+      });
+
+      await pickUpChannel(deps, CONVERSATION, "job-2");
+
+      const kept = await byId(OLD);
+      expect(kept?.metadata.status).toBe("active");
+      expect(kept?.metadata.supersededBy).toBeUndefined();
+      expect(kept?.content).toContain("Only for freelancers.");
+      // The new decision is recorded all the same.
+      expect((await byId(NEW))?.metadata.status).toBe("active");
+      expect(
+        (await deps.bookmarks.get(CONVERSATION))?.notices?.at(-1)?.cards,
+      ).toHaveLength(1);
+    });
+
+    it("leaves a decision alone when what replaces it was taken back", async () => {
+      await overturned();
+      const bookmark = await deps.bookmarks.get(CONVERSATION);
+      await deps.bookmarks.set(CONVERSATION, {
+        ...bookmark,
+        processedThrough: 3,
+        rejected: [NEW],
+      });
+
+      await pickUpChannel(deps, CONVERSATION, "job-2");
+
+      expect((await byId(OLD))?.metadata.status).toBe("active");
+      expect(await byId(NEW)).toBeUndefined();
+    });
   });
 
   it("picks up no decisions when the pickup is given no decision extractor", async () => {

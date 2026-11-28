@@ -198,6 +198,38 @@ describe("ChannelDecisionExtractor", () => {
     ]);
   });
 
+  it("names the recorded decision a new one replaces", async () => {
+    const recorded = [
+      {
+        id: "d-earlier",
+        title: "Drop the company field",
+        text: "The form no longer asks for a company name.",
+      },
+    ];
+    const keepIt = {
+      ...dropTheField,
+      title: "Keep the company field",
+      text: "Invoicing needs the company name, so the field stays.",
+    };
+    const { extractor } = extractorReturning([
+      { ...keepIt, replaces: "d1" },
+      { ...keepIt, title: "Send invoices monthly", replaces: "d7" },
+      { ...keepIt, title: "Keep the email field", replaces: "none" },
+    ]);
+
+    const { decisions } = await extractor.extract({
+      context,
+      fresh,
+      decisions: recorded,
+    });
+
+    expect(decisions.map((decision) => decision.replaces)).toEqual([
+      "d-earlier",
+      undefined,
+      undefined,
+    ]);
+  });
+
   it("names only deciders it can identify", async () => {
     const { extractor } = extractorReturning([
       { ...dropTheField, message: 21, decidedBy: ["p1", "p9", "nobody"] },

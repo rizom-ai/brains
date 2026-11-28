@@ -1886,6 +1886,10 @@
           "type": "string",
           "enum": ["active", "superseded"]
         },
+        "supersededBy": {
+          "studioWidget": "hidden",
+          "type": "string"
+        },
         "startedAt": {
           "studioWidget": "provenance",
           "type": "string",

@@ -22,6 +22,7 @@ type ChannelDecisionExtractionSchema = z.ZodObject<{
       text: z.ZodString;
       message: z.ZodNumber;
       decidedBy: z.ZodArray<z.ZodString>;
+      replaces: z.ZodString;
     }>
   >;
 }>;
@@ -43,6 +44,8 @@ export const channelDecisionExtractionSchema: ChannelDecisionExtractionSchema =
         message: z.number().int(),
         /** The participants (p1, p2…) who declared or accepted it. */
         decidedBy: z.array(z.string()),
+        /** The recorded decision (d1, d2…) it overturns, or "none". */
+        replaces: z.string(),
       }),
     ),
   });

@@ -91,6 +91,53 @@ describe("undoing a decision from its notice", () => {
     expect(bookmark?.own).toEqual({});
   });
 
+  it("brings back the decision that the one taken back had superseded", async () => {
+    const OLD = "discord-1466-decision-1-1";
+    await pickedUp({ recorded: true });
+    await harness.getEntityService().createEntity({
+      entity: {
+        id: OLD,
+        entityType: "decision",
+        visibility: "shared",
+        content: "# Keep the company field\n\nThe form asks for it.",
+        metadata: {
+          conversationId: ROOM,
+          channelId: "discord:guild-1:1466",
+          interfaceType: "discord",
+          status: "superseded",
+          supersededBy: ID,
+        },
+      },
+    });
+    const old = await harness
+      .getEntityService()
+      .getEntity(
+        { entityType: "decision", id: OLD, visibilityScope: "restricted" },
+        decisionSchema,
+      );
+    const bookmark = await deps.bookmarks.get(ROOM);
+    await deps.bookmarks.set(ROOM, {
+      ...bookmark,
+      processedThrough: 3,
+      own: { ...bookmark?.own, [OLD]: old?.contentHash ?? "" },
+    });
+
+    await undoNoticeCard(deps, click);
+
+    const restored = await harness
+      .getEntityService()
+      .getEntity(
+        { entityType: "decision", id: OLD, visibilityScope: "restricted" },
+        decisionSchema,
+      );
+    expect(restored?.metadata.status).toBe("active");
+    expect(restored?.metadata.supersededBy).toBeUndefined();
+    // Still the pickup's own, as it now reads.
+    expect((await deps.bookmarks.get(ROOM))?.own).toEqual({
+      [OLD]: restored?.contentHash ?? "",
+    });
+  });
+
   it("keeps a decision someone has edited", async () => {
     await pickedUp({ recorded: true });
     const written = await stored();

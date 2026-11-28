@@ -45,6 +45,7 @@ function decisionLine(card: NoticeCard): string {
   if (card.undo?.outcome === "removed") {
     return `~~${card.title}~~ · removed by ${card.undo.by}`;
   }
+  if (card.change === "superseded") return `Superseded: ~~${card.title}~~`;
   const named = `Decision: ${card.title}`;
   return card.undo?.outcome === "kept"
     ? `${named} · kept: edited since`
@@ -60,6 +61,7 @@ function noticeTitle(cards: NoticeCard[]): string {
       : "Board updated";
   }
   if (decisions < cards.length) return "Picked up from this channel";
+  if (cards.some((card) => card.change)) return "Decisions updated";
   return decisions === 1 ? "Decision recorded" : "Decisions recorded";
 }
 
@@ -97,6 +99,7 @@ export function noticeContent(notice: ChannelNotice): SpaceNoticeContent {
         (card) =>
           !card.undo &&
           card.change !== "withdrawn" &&
+          card.change !== "superseded" &&
           card.id.length <= SPACE_NOTICE_VALUE_LIMIT,
       )
       .map((card) => ({ label: undoLabel(card.title), value: card.id })),
