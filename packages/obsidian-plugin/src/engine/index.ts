@@ -38,6 +38,7 @@ export {
   IMAGE_FOLDER,
   conflictCopyPath,
   placementOf,
+  type FileFlavor,
 } from "./paths";
 export {
   emptyState,

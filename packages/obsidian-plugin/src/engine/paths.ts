@@ -19,20 +19,31 @@ export const OBSIDIAN_FILES_FOLDER = "_obsidian";
 /** The folder of image entities. */
 export const IMAGE_FOLDER = "image";
 
+/** The folder of document entities: the brain's PDFs. */
+export const DOCUMENT_FOLDER = "document";
+const PDF_EXTENSION = ".pdf";
+const PDF_PLACE = "The brain keeps PDFs in the document folder.";
+
 /**
  * Entity types the brain lists that a vault does not hold: conflicts are the
- * brain's own record of edits that lost, and documents are not synced yet.
+ * brain's own record of edits that lost.
  */
-const UNSYNCED_TYPES: ReadonlySet<string> = new Set(["conflict", "document"]);
+const UNSYNCED_TYPES: ReadonlySet<string> = new Set(["conflict"]);
 
 /** Whether the drive's folder of an entity type is one the vault mirrors. */
 export function isSyncedType(type: string): boolean {
   return !type.startsWith(".") && !UNSYNCED_TYPES.has(type);
 }
 
+/**
+ * How a synced file is handled: text is compared and shown as text, an image
+ * is a file of bytes notes embed, and any other file is its bytes.
+ */
+export type FileFlavor = "text" | "image" | "file";
+
 export type Placement =
   /** A file the vault and the brain keep in step. */
-  | { kind: "synced"; flavor: "text" | "image" }
+  | { kind: "synced"; flavor: FileFlavor }
   /** The vault's own or the plugin's own: never synced, never listed. */
   | { kind: "ignored" }
   /** A file the brain has no place for, and why. */
@@ -65,18 +76,13 @@ export function placementOf(
   }
   const extension = extensionOf(path);
   if (segments.length === 1) {
-    return extension === ".md"
-      ? { kind: "synced", flavor: "text" }
-      : {
-          kind: "local",
-          reason:
-            "The brain keeps notes (.md files) at the top of the vault; other files there stay in the vault.",
-        };
-  }
-  if (first === "document") {
+    if (extension === ".md") return { kind: "synced", flavor: "text" };
     return {
       kind: "local",
-      reason: "PDFs and other documents are not synced yet.",
+      reason:
+        extension === PDF_EXTENSION
+          ? PDF_PLACE
+          : "The brain keeps notes (.md files) at the top of the vault; other files there stay in the vault.",
     };
   }
   if (!typeFolders.has(first) || !isSyncedType(first)) {
@@ -85,6 +91,12 @@ export function placementOf(
       reason: `The brain has no "${first}" folder. Notes go at the top of the vault; other entries go in the folder of their type.`,
     };
   }
+  if (first === DOCUMENT_FOLDER) {
+    return extension === PDF_EXTENSION
+      ? { kind: "synced", flavor: "file" }
+      : { kind: "local", reason: "The document folder holds PDFs." };
+  }
+  if (extension === PDF_EXTENSION) return { kind: "local", reason: PDF_PLACE };
   if (first === IMAGE_FOLDER) {
     return IMAGE_EXTENSIONS.includes(extension)
       ? { kind: "synced", flavor: "image" }

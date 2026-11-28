@@ -17,6 +17,7 @@ import {
   extensionOf,
   isSyncedType,
   placementOf,
+  type FileFlavor,
 } from "./paths";
 import type { StateStore, SyncState } from "./state";
 import type { SyncVault } from "./vault";
@@ -61,7 +62,7 @@ export interface OpenConflict {
   path: string;
   /** The person's version, in the Conflicts folder. */
   copy: string;
-  flavor: "text" | "image";
+  flavor: "text" | "file";
   /** The brain's version, now in the file; absent when the file is gone. */
   brains?: string;
   /** The person's version; text files only. */
@@ -126,7 +127,7 @@ interface Remote {
 }
 
 interface LocalFile {
-  flavor: "text" | "image";
+  flavor: FileFlavor;
   hash: string;
   size: number;
   mtime: number;
@@ -326,7 +327,7 @@ export class SyncEngine {
         state.conflicts.map(
           async ({ path, copy }): Promise<OpenConflict | undefined> => {
             if (!(await this.vault.exists(copy))) return undefined;
-            const flavor = extensionOf(path) === ".md" ? "text" : "image";
+            const flavor = extensionOf(path) === ".md" ? "text" : "file";
             const current = (await this.vault.exists(path))
               ? await this.vault.read(path)
               : undefined;
@@ -742,7 +743,7 @@ export class SyncEngine {
   }
 
   private localFile(
-    flavor: "text" | "image",
+    flavor: FileFlavor,
     stat: { size: number; mtime: number },
     bytes: Uint8Array,
   ): Omit<LocalFile, "hash"> {
@@ -1201,7 +1202,7 @@ export class SyncEngine {
   ): Promise<void> {
     const inInbox = kept !== false;
     const current: LocalFile = {
-      flavor: extensionOf(path) === ".md" ? "text" : "image",
+      flavor: extensionOf(path) === ".md" ? "text" : "file",
       hash: await sha256Hex(local),
       size: local.byteLength,
       mtime: 0,
