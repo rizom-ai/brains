@@ -1,5 +1,17 @@
 # @brains/seminar
 
+## 0.2.0-alpha.790
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.790
+  - @rizom/brain-ui@0.2.0-alpha.790
+  - @brains/content-formatters@0.2.0-alpha.790
+  - @brains/contracts@0.2.0-alpha.790
+  - @brains/site-atlas@0.2.0-alpha.790
+  - @brains/utils@0.2.0-alpha.790
+
 ## 0.2.0-alpha.789
 
 ### Patch Changes
