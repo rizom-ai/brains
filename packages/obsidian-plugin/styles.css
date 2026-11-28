@@ -14,6 +14,7 @@
 
 .rizom-brain-conflict-modal {
   width: min(92vw, 1000px);
+  max-width: min(92vw, 1000px);
 }
 
 .rizom-brain-compare {
@@ -40,6 +41,7 @@
   overflow-wrap: anywhere;
 }
 
+/* Obsidian's yellow, which every theme defines; its own when one does not. */
 .rizom-brain-differs {
-  background-color: var(--text-highlight-bg);
+  background-color: rgba(var(--color-yellow-rgb, 224, 172, 0), 0.3);
 }
