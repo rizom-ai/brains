@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress. The seminar plugin is on main (#1060): on a local test app with the three book brains as approved peers, a seminar of ten turns is held in about 40 seconds, redone from its closing in 8, and published. Live questions reach every approved peer (#1062). The site is on main (#1068) and awaits its first publish to npm. The content and the fleet brain remain. The three book brains it reads with are live on `0.2.0-alpha.765` (see [books.md](./books.md)): `friedrich.rizom.ai` (26 books, 3,705 sections), `karl.rizom.ai` (117 books, 5,576 sections) and `sigmund.rizom.ai` (207 books, 3,249 sections), each answering as its author, in the first person, citing book and siglum or page. No brain has them as approved peers yet, so a question asked of the network does not reach them: on 26 November `network_ask` from `yeehaa.io` on resentment went to two other brains and neither held anything on it.
+In progress. The seminar plugin is on main (#1060): on a local test app with the three book brains as approved peers, a seminar of ten turns is held in about 40 seconds, redone from its closing in 8, and published. Live questions reach every approved peer (#1062). The site is on main (#1068) and on npm as `@rizom/site-seminar@0.2.0-alpha.1`. The chair reads the brain's notes on the question (#1074). The notes are drafted and the fleet brain is prepared (rizom-ai/rover-pilot#366); onboarding it, loading its content and the first seminars remain. The three book brains it reads with are live on `0.2.0-alpha.765` (see [books.md](./books.md)): `friedrich.rizom.ai` (26 books, 3,705 sections), `karl.rizom.ai` (117 books, 5,576 sections) and `sigmund.rizom.ai` (207 books, 3,249 sections), each answering as its author, in the first person, citing book and siglum or page. No brain has them as approved peers yet, so a question asked of the network does not reach them: on 26 November `network_ask` from `yeehaa.io` on resentment went to two other brains and neither held anything on it.
 
 ## Goal
 
@@ -133,17 +133,17 @@ The site package, the two page templates and the Ask page are on main. Mockups: 
 - `plugins.seminar.peers` gives each peer the name the brain shows him under and his place among the others; a seminar is stored, and the chair writes, under those names
 - the home page's claim is the anchor profile's description, its stressed word between asterisks
 - `/ask` is always in the menu and says asking is not open yet until Web Chat serves the guest box, as on the books site
-- left: the package's first publish to npm, then its release after core
+- published as `@rizom/site-seminar@0.2.0-alpha.1`
 
 ### Phase 6 — content
 
 - the notes above, staged locally and checked against the three brains: every linked section exists and holds the quoted words
 - anchor profile, brain character, site info
-- the chair reads the notes that bear on the question before it decides who stands
+- done (#1074): the chair's first turn is given the public notes nearest the question, at most three, as its own background; a seminar is held without them when they cannot be read
 
 ### Phase 7 — fleet
 
-- the books cohort moves to the release that carries the language rule, with its image locks
+- done: the books cohort is on `0.2.0-alpha.791`, which carries the language rule
 - `users/suspicion.yaml` (organization kinds, `siteOverride` with `@rizom/site-seminar` and `@rizom/theme-books` and their `version` and `themeVersion` pins, `plugins.agents.askAllApproved: true`, `plugins.seminar.guidance`, `plugins.seminar.peers`, `plugins.a2a.turnTimeoutMs`, Discord off, setup email `yeehaa@rizom.ai`) and its cohort in rizom-ai/rover-pilot; `onboard`, content committed to the content repo
 - `agent_connect` to `karl.rizom.ai`, `friedrich.rizom.ai` and `sigmund.rizom.ai`, approved in Studio
 - the first seminars: what a community should remember and forget, what religion is, whether consciousness is master of itself, where morality comes from; read, then published
