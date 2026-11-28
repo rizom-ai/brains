@@ -26,6 +26,8 @@ import {
 } from "./studio-navigation.styles";
 import { workspaceRailBadges } from "./studio-app-model";
 import { ChatEmptyState, ChatTurn, ApprovalCard } from "./studio-chat-thread";
+import { chatStarters } from "./chat-mentions";
+import { StudioLinkNavigationProvider } from "./studio-markdown";
 import { Composer } from "./studio-chat-composer";
 import { StudioChatInterruption } from "./studio-chat-interruption";
 import { StudioChatThreadHead } from "./studio-chat-thread-head";
@@ -233,211 +235,223 @@ export function StudioChatWorkspace(
   const workspaceBadges = workspaceRailBadges(props.workspaces);
 
   return (
-    <div
-      className={chatClass("studio", library.frame, chatLayout.root)}
-      data-view="chat"
-      data-studio-shell=""
-    >
-      <StudioChrome
-        contextLabel="Chat"
-        navigation={{
-          types: props.types,
-          workspaces: props.workspaces,
-          activeEntityType: null,
-          activeWorkspaceId: STUDIO_CHAT_WORKSPACE_ID,
-          workspaceBadges,
-          selectEntityType: props.selectEntityType,
-          selectWorkspace: props.selectWorkspace,
-        }}
-      />
+    <StudioLinkNavigationProvider value={(href) => props.navigate(href)}>
       <div
-        className={navClass(
-          "studio-chat-shell",
-          chatLayout.shell,
-          nav.shell,
-          navigationCollapsed && nav.shellCollapsed,
-        )}
+        className={chatClass("studio", library.frame, chatLayout.root)}
+        data-view="chat"
+        data-studio-shell=""
       >
-        <aside className={navClass("rail studio-chat-studio-rail", nav.rail)}>
-          <TypeSwitcher
-            renderMode="desktop"
-            types={props.types}
-            active={null}
-            onSelect={props.selectEntityType}
-            workspaces={props.workspaces}
-            activeWorkspace={STUDIO_CHAT_WORKSPACE_ID}
-            workspaceBadges={workspaceBadges}
-            onSelectWorkspace={props.selectWorkspace}
-          />
-        </aside>
-        <main className={chatClass("studio-chat-workspace", chatLayout.frame)}>
-          <div className={chatClass("studio-chat-room", chatLayout.room)}>
-            <section
-              className={chatClass("studio-chat-thread", chatLayout.thread)}
-              aria-label="Conversation"
-            >
-              <StudioChatThreadHead
-                sessionId={props.sessionId}
-                sessions={chatSessions}
-                archiving={archiving}
-                archiveBlocked={archiveBlocked}
-                draftPending={draftPending}
-                onArchive={() => void archiveCurrent()}
-                deletion={deletion}
-                contextCards={contextCards}
-                progress={stream?.progress ?? []}
-              />
-              <div
-                ref={threadScrollRef}
-                tabIndex={0}
-                role="region"
-                aria-label="Conversation messages"
-                onScroll={onThreadScroll}
-                className={chatClass(
-                  "studio-chat-thread-scroll",
-                  chatLayout.threadScroll,
-                )}
+        <StudioChrome
+          contextLabel="Chat"
+          navigation={{
+            types: props.types,
+            workspaces: props.workspaces,
+            activeEntityType: null,
+            activeWorkspaceId: STUDIO_CHAT_WORKSPACE_ID,
+            workspaceBadges,
+            selectEntityType: props.selectEntityType,
+            selectWorkspace: props.selectWorkspace,
+          }}
+        />
+        <div
+          className={navClass(
+            "studio-chat-shell",
+            chatLayout.shell,
+            nav.shell,
+            navigationCollapsed && nav.shellCollapsed,
+          )}
+        >
+          <aside className={navClass("rail studio-chat-studio-rail", nav.rail)}>
+            <TypeSwitcher
+              renderMode="desktop"
+              types={props.types}
+              active={null}
+              onSelect={props.selectEntityType}
+              workspaces={props.workspaces}
+              activeWorkspace={STUDIO_CHAT_WORKSPACE_ID}
+              workspaceBadges={workspaceBadges}
+              onSelectWorkspace={props.selectWorkspace}
+            />
+          </aside>
+          <main
+            className={chatClass("studio-chat-workspace", chatLayout.frame)}
+          >
+            <div className={chatClass("studio-chat-room", chatLayout.room)}>
+              <section
+                className={chatClass("studio-chat-thread", chatLayout.thread)}
+                aria-label="Conversation"
               >
+                <StudioChatThreadHead
+                  sessionId={props.sessionId}
+                  sessions={chatSessions}
+                  archiving={archiving}
+                  archiveBlocked={archiveBlocked}
+                  draftPending={draftPending}
+                  onArchive={() => void archiveCurrent()}
+                  deletion={deletion}
+                  contextCards={contextCards}
+                  progress={stream?.progress ?? []}
+                />
                 <div
+                  ref={threadScrollRef}
+                  tabIndex={0}
+                  role="region"
+                  aria-label="Conversation messages"
+                  onScroll={onThreadScroll}
                   className={chatClass(
-                    "studio-chat-manuscript",
-                    chatLayout.manuscript,
+                    "studio-chat-thread-scroll",
+                    chatLayout.threadScroll,
                   )}
                 >
-                  {historyFailed && (
-                    <section role="alert">
-                      <p>
-                        {hasStoredHistory
-                          ? "Showing previously loaded messages. "
-                          : ""}
-                        Conversation could not be loaded.
-                      </p>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        disabled={historyReading}
-                        onClick={retryHistory}
+                  <div
+                    className={chatClass(
+                      "studio-chat-manuscript",
+                      chatLayout.manuscript,
+                    )}
+                  >
+                    {historyFailed && (
+                      <section role="alert">
+                        <p>
+                          {hasStoredHistory
+                            ? "Showing previously loaded messages. "
+                            : ""}
+                          Conversation could not be loaded.
+                        </p>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          disabled={historyReading}
+                          onClick={retryHistory}
+                        >
+                          Retry conversation
+                        </Button>
+                      </section>
+                    )}
+                    {historyOpening &&
+                    props.sessionId &&
+                    visibleMessages.length === 0 ? (
+                      <p
+                        className={chatClass(
+                          "studio-chat-empty",
+                          chatLayout.empty,
+                        )}
                       >
-                        Retry conversation
-                      </Button>
-                    </section>
-                  )}
-                  {historyOpening &&
-                  props.sessionId &&
-                  visibleMessages.length === 0 ? (
-                    <p
-                      className={chatClass(
-                        "studio-chat-empty",
-                        chatLayout.empty,
-                      )}
-                    >
-                      Opening conversation…
-                    </p>
-                  ) : null}
-                  {!historyFailed &&
-                  (!props.sessionId || !historyOpening) &&
-                  visibleMessages.length === 0 ? (
-                    <ChatEmptyState />
-                  ) : null}
-                  {visibleMessages.map((message) => (
-                    <ChatTurn
-                      key={message.id}
-                      message={message}
-                      client={chatClient}
-                      disabled={sending}
-                      onAction={runSuggestedAction}
-                      onApproval={respondToApproval}
-                    />
-                  ))}
-                  {stream?.approvals.map((approval) => (
-                    <ApprovalCard
-                      key={approval.approvalId}
-                      approval={approval}
-                      disabled={sending}
-                      onDecision={respondToApproval}
-                    />
-                  ))}
-                  {stream && stream.progress.length > 0 && (
-                    <details
-                      className={chatClass(
-                        "studio-chat-progress",
-                        chatLayout.card,
-                      )}
-                    >
-                      <summary>
-                        Activity · {stream.progress.length} updates
-                      </summary>
-                      <pre className={chatClass("", chatLayout.source)}>
-                        {JSON.stringify(stream.progress, null, 2)}
-                      </pre>
-                    </details>
-                  )}
-                  {sending ? (
-                    <p
-                      className={chatClass(
-                        "studio-chat-stream-status",
-                        chatLayout.empty,
-                      )}
-                      role="status"
-                    >
-                      Responding…
-                    </p>
-                  ) : null}
-                  {interrupted && (
-                    <StudioChatInterruption
-                      interrupted={interrupted}
-                      draftPending={composerHasContent}
-                      restoreBlocked={sending || uploading}
-                      onRestore={(retry) => {
-                        setDraft(retry.text);
-                        setUploads([...retry.uploads]);
-                        threadScrollRef.current
-                          ?.closest(".studio-chat-thread")
-                          ?.querySelector<HTMLTextAreaElement>("textarea")
-                          ?.focus();
-                      }}
-                    />
-                  )}
-                  {error ? (
-                    <p
-                      className={chatClass(
-                        "studio-chat-error",
-                        chatLayout.empty,
-                        chatLayout.error,
-                      )}
-                      role="alert"
-                    >
-                      {error}
-                    </p>
-                  ) : null}
-                  {/* Trailing anchor; the thread scrolls to its own end. */}
-                  <div />
+                        Opening conversation…
+                      </p>
+                    ) : null}
+                    {!historyFailed &&
+                    (!props.sessionId || !historyOpening) &&
+                    visibleMessages.length === 0 ? (
+                      <ChatEmptyState
+                        starters={chatStarters({
+                          types: props.types.map((type) => type.entityType),
+                          workspaces: props.workspaces.map(
+                            (workspace) => workspace.id,
+                          ),
+                        })}
+                        onStart={setDraft}
+                      />
+                    ) : null}
+                    {visibleMessages.map((message) => (
+                      <ChatTurn
+                        key={message.id}
+                        message={message}
+                        client={chatClient}
+                        disabled={sending}
+                        onAction={runSuggestedAction}
+                        onApproval={respondToApproval}
+                      />
+                    ))}
+                    {stream?.approvals.map((approval) => (
+                      <ApprovalCard
+                        key={approval.approvalId}
+                        approval={approval}
+                        disabled={sending}
+                        onDecision={respondToApproval}
+                      />
+                    ))}
+                    {stream && stream.progress.length > 0 && (
+                      <details
+                        className={chatClass(
+                          "studio-chat-progress",
+                          chatLayout.card,
+                        )}
+                      >
+                        <summary>
+                          Activity · {stream.progress.length} updates
+                        </summary>
+                        <pre className={chatClass("", chatLayout.source)}>
+                          {JSON.stringify(stream.progress, null, 2)}
+                        </pre>
+                      </details>
+                    )}
+                    {sending ? (
+                      <p
+                        className={chatClass(
+                          "studio-chat-stream-status",
+                          chatLayout.empty,
+                        )}
+                        role="status"
+                      >
+                        Responding…
+                      </p>
+                    ) : null}
+                    {interrupted && (
+                      <StudioChatInterruption
+                        interrupted={interrupted}
+                        draftPending={composerHasContent}
+                        restoreBlocked={sending || uploading}
+                        onRestore={(retry) => {
+                          setDraft(retry.text);
+                          setUploads([...retry.uploads]);
+                          threadScrollRef.current
+                            ?.closest(".studio-chat-thread")
+                            ?.querySelector<HTMLTextAreaElement>("textarea")
+                            ?.focus();
+                        }}
+                      />
+                    )}
+                    {error ? (
+                      <p
+                        className={chatClass(
+                          "studio-chat-error",
+                          chatLayout.empty,
+                          chatLayout.error,
+                        )}
+                        role="alert"
+                      >
+                        {error}
+                      </p>
+                    ) : null}
+                    {/* Trailing anchor; the thread scrolls to its own end. */}
+                    <div />
+                  </div>
                 </div>
-              </div>
-              <Composer
-                onJumpToLatest={showJumpToLatest ? jumpToLatest : undefined}
-                draft={draft}
-                sending={sending}
-                uploading={uploading}
-                uploads={uploads}
-                uploadAttempts={uploadAttempts}
-                onRetryUpload={(attempt) => void runUploads([attempt])}
-                onDismissUpload={dismissAttempt}
-                onDraft={setDraft}
-                locked={archiving || deletion.deleting}
-                onRemoveUpload={(id) =>
-                  setUploads((current) =>
-                    current.filter((upload) => upload.id !== id),
-                  )
-                }
-                onFiles={uploadFiles}
-                onSubmit={submit}
-                onStop={hasActiveStream() ? stopActiveStream : undefined}
-              />
-            </section>
-          </div>
-        </main>
+                <Composer
+                  onJumpToLatest={showJumpToLatest ? jumpToLatest : undefined}
+                  draft={draft}
+                  sending={sending}
+                  uploading={uploading}
+                  uploads={uploads}
+                  uploadAttempts={uploadAttempts}
+                  onRetryUpload={(attempt) => void runUploads([attempt])}
+                  onDismissUpload={dismissAttempt}
+                  onDraft={setDraft}
+                  locked={archiving || deletion.deleting}
+                  onRemoveUpload={(id) =>
+                    setUploads((current) =>
+                      current.filter((upload) => upload.id !== id),
+                    )
+                  }
+                  onFiles={uploadFiles}
+                  onSubmit={submit}
+                  onStop={hasActiveStream() ? stopActiveStream : undefined}
+                />
+              </section>
+            </div>
+          </main>
+        </div>
       </div>
-    </div>
+    </StudioLinkNavigationProvider>
   );
 }

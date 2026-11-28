@@ -8,10 +8,18 @@ import {
 } from "@brains/contracts/chat";
 import { type ReactElement } from "react";
 import { type StudioChatApproval } from "./chat-workspace-model";
-import { StudioMarkdown } from "./studio-markdown";
+import { StudioMarkdown, useStudioLinkNavigation } from "./studio-markdown";
+import { getStudioRouterBasePath } from "./studio-router";
+import { isPlainLinkClick } from "./link-click";
+import { linkCitedTitles, sourceHref, type CitedSource } from "./chat-mentions";
 import type { ChatSuggestedAction } from "./studio-chat-contracts";
 
-export function ChatEmptyState(): ReactElement {
+export function ChatEmptyState(props: {
+  /** Ways to start, from what this brain can do; each fills the composer. */
+  starters?: readonly string[] | undefined;
+  onStart?: ((prompt: string) => void) | undefined;
+}): ReactElement {
+  const starters = props.onStart ? (props.starters ?? []) : [];
   return (
     <section
       className={chatClass(
@@ -24,6 +32,23 @@ export function ChatEmptyState(): ReactElement {
       <p className={chatClass("", chatLayout.cardText)}>
         No messages yet. Your draft stays in the composer until you send it.
       </p>
+      {starters.length > 0 && (
+        <div
+          data-studio-chat-starters=""
+          className={chatClass("studio-chat-actions", chatLayout.actions)}
+          aria-label="Ways to start"
+        >
+          {starters.map((starter) => (
+            <button
+              type="button"
+              key={starter}
+              onClick={() => props.onStart?.(starter)}
+            >
+              {starter}
+            </button>
+          ))}
+        </div>
+      )}
     </section>
   );
 }
@@ -63,7 +88,11 @@ export function ChatTurn(props: {
               className={chatClass("studio-chat-prose", chatLayout.cards)}
               presentation="chat"
             >
-              {props.message.content}
+              {linkCitedTitles(
+                props.message.content,
+                citedSources(props.message.cards),
+                getStudioRouterBasePath(),
+              )}
             </StudioMarkdown>
           ) : (
             <p className={chatClass("studio-chat-text", chatLayout.paragraph)}>
@@ -141,23 +170,25 @@ function MessageCard(props: {
   }
   if (card.kind === "sources") {
     return (
-      <details className={chatClass("studio-chat-sources", chatLayout.card)}>
-        <summary>{card.title ?? `${card.sources.length} sources`}</summary>
-        <ul>
-          {card.sources.map((source) => (
-            <li key={source.id}>
-              {source.url ? (
-                <a href={source.url}>{source.title ?? source.source}</a>
-              ) : (
-                (source.title ?? source.source)
-              )}{" "}
-              <span className={chatClass("", chatLayout.sourceType)}>
-                {source.entityType ?? source.source}
-              </span>
-            </li>
-          ))}
+      <nav
+        className={chatClass("studio-chat-sources", chatLayout.card)}
+        aria-label={card.title ?? "Sources"}
+      >
+        <ul data-studio-chat-source-chips="">
+          {card.sources.map((source) => {
+            const href = sourceHref(source, getStudioRouterBasePath());
+            const label = source.title ?? source.source;
+            return (
+              <li key={source.id}>
+                {href ? <SourceLink href={href}>{label}</SourceLink> : label}{" "}
+                <span className={chatClass("", chatLayout.sourceType)}>
+                  {source.entityType ?? source.source}
+                </span>
+              </li>
+            );
+          })}
         </ul>
-      </details>
+      </nav>
     );
   }
   if (card.kind === "attachment") {
@@ -312,5 +343,33 @@ export function ApprovalCard(props: {
         </button>
       </div>
     </section>
+  );
+}
+
+/** The entries an answer drew on, from its sources cards. */
+function citedSources(
+  cards: ChatHistoryMessage["cards"] | undefined,
+): CitedSource[] {
+  return (cards ?? []).flatMap((card) =>
+    card.kind === "sources" ? card.sources : [],
+  );
+}
+
+/** A source chip: a Studio entry opens in place, anything else in a new tab. */
+function SourceLink(props: { href: string; children: string }): ReactElement {
+  const navigate = useStudioLinkNavigation();
+  const internal = props.href.startsWith("/");
+  return (
+    <a
+      href={props.href}
+      {...(internal ? {} : { target: "_blank", rel: "noopener noreferrer" })}
+      onClick={(event) => {
+        if (!internal || !navigate || !isPlainLinkClick(event)) return;
+        event.preventDefault();
+        navigate(props.href);
+      }}
+    >
+      {props.children}
+    </a>
   );
 }
