@@ -23,6 +23,7 @@ import {
 import { resolveConsoleThemeCSS } from "@brains/console-theme";
 import { DASHBOARD_STYLES } from "../plugins/dashboard/src/render/styles";
 import { DASHBOARD_UI_SCRIPT } from "../plugins/dashboard/src/render/ui-script";
+import { chromeBackend, chromeProfile } from "./accessibility/browser";
 import { spatialFixtures } from "./fixtures/operator-spatial";
 
 // Exercise the real SSR composition and enhancer, including narrow desktop panels.
@@ -272,10 +273,8 @@ try {
       for (const variant of ["line", "pill"]) {
         const executablePath = process.env["CONSOLE_CHROMIUM_PATH"];
         const page = new Bun.WebView({
-          backend: {
-            type: "chrome",
-            ...(executablePath ? { executablePath } : {}),
-          },
+          backend: executablePath ? chromeBackend(executablePath) : "chrome",
+          dataStore: chromeProfile(),
           width,
           height: 800,
         });
