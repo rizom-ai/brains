@@ -45,7 +45,6 @@ This widens what an app password can do: it could already read and write every f
 | Call                                                   | What it does                               | Brain side                                                                                                                                               |
 | ------------------------------------------------------ | ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `GET .brain/related?path=…&limit=…`                    | the entries nearest to the entry at a path | `entityReads.nearestToEntity`, scoped; each result as its drive path and title                                                                           |
-| `POST .brain/capture` `{ url }`                        | capture a link                             | a new contract `link:capture-request` in `@brains/contracts`, answered by `entities/link`                                                                |
 | `POST .brain/publish` `{ path, action }`               | publish or unpublish an entry              | a new contract `publish:request` in `@brains/contracts`, answered by `plugins/content-pipeline` with the checks and announcements of `publishing_manage` |
 | `POST .brain/ask` `{ question, path?, conversation? }` | one turn, answered with text and sources   | a new contract `agent:ask` in `@brains/contracts`, answered by `interfaces/web-chat`, which runs `agent.chat` as that person, read-only                  |
 
@@ -62,7 +61,7 @@ A view in the right sidebar. When the open file is a synced entry, the plugin as
 ### Quick capture
 
 - **Text:** the command "Send to your brain" takes the selection, or asks for a line, asks for a title (the first line by default), and writes a note at the vault's root. Sync uploads it as any note. No brain change.
-- **Links:** when the text is a URL, the plugin posts it to `.brain/capture`. The brain makes a pending link entry and fetches it, as a link shared in chat is; the entry arrives in the vault's `link` folder through the change feed.
+- **Links:** a link is captured by the brain's create pipeline, which fetches and describes it. That pipeline runs only inside an agent turn (`system_create`); `entities/link` is an entity package, which answers no bus contract. So a link is captured through Ask, in phase 5, and there is no `capture` call.
 
 ### Publish
 
@@ -86,9 +85,9 @@ Each phase ships on its own, tests first, as one pull request with a plugin rele
 
 1. **File marks.** Plugin only.
 2. **Related notes.** The drive's `related` call; the panel.
-3. **Quick capture.** Text capture, plugin only; then the `link:capture-request` contract, the drive's `capture` call, and link capture.
+3. **Quick capture.** Text capture, plugin only. Link capture moves to phase 5.
 4. **Publish.** The `publish:request` contract answered by content-pipeline; the drive's `publish` call; the commands and the mark.
-5. **Ask.** The `agent:ask` contract answered by Web Chat, read-only turns; the drive's `ask` call; the panel.
+5. **Ask.** The `agent:ask` contract answered by Web Chat; the drive's `ask` call; the panel; link capture through it.
 
 ## Open points
 

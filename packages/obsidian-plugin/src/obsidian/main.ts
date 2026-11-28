@@ -27,10 +27,12 @@ import {
 } from "../engine";
 import { acceptConnect, originOf, type PendingConnect } from "./connect";
 import { getErrorMessage } from "@brains/utils/error";
+import { capturedNote } from "./capture";
 import { explorerMarks } from "./explorer-marks";
 import { FileListMarks } from "./file-list-marks";
 import { RELATED_VIEW, RelatedView } from "./related-view";
 import {
+  CaptureModal,
   ConflictModal,
   DeletesModal,
   FilesModal,
@@ -194,6 +196,24 @@ export default class RizomBrainPlugin extends Plugin {
           if (leaf.view instanceof RelatedView) void leaf.view.show(file);
         }
       }),
+    );
+    this.addCommand({
+      id: "capture",
+      name: "Send a thought to your brain",
+      callback: () => this.capture(""),
+    });
+    this.addCommand({
+      id: "capture-selection",
+      name: "Send the selection to your brain",
+      editorCheckCallback: (checking, editor) => {
+        const selection = editor.getSelection();
+        if (selection.trim() === "") return false;
+        if (!checking) this.capture(selection);
+        return true;
+      },
+    });
+    this.addRibbonIcon("send", "Send a thought to your brain", () =>
+      this.capture(""),
     );
     this.addCommand({
       id: "settle-conflicts",
@@ -551,6 +571,34 @@ export default class RizomBrainPlugin extends Plugin {
         ? "Compare and settle conflicts"
         : "Show files that are not synced with your brain",
     );
+  }
+
+  /**
+   * Quick capture: ask for a text and a title, and make the note at the top
+   * of the vault. It goes to the brain as any new note does.
+   */
+  capture(text: string): void {
+    new CaptureModal(this.app, text, (captured, title) => {
+      const note = capturedNote(
+        captured,
+        title,
+        (path) => this.app.vault.getAbstractFileByPath(path) !== null,
+      );
+      if (!note) {
+        new Notice("Nothing was sent: it needs some text and a title.");
+        return;
+      }
+      void this.app.vault.create(note.path, note.content).then(
+        () =>
+          new Notice(
+            this.connected()
+              ? `Sent to your brain as ${note.path}.`
+              : `Saved as ${note.path}. It goes to your brain once you connect.`,
+          ),
+        (error: unknown) =>
+          new Notice(`The note could not be made: ${getErrorMessage(error)}`),
+      );
+    }).open();
   }
 
   /** Open the panel of related entries in the right sidebar. */
