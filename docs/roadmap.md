@@ -94,7 +94,6 @@ The substrate exists: scoped conversation memory, first-pass attribution, config
 
 Plans:
 
-- [channel-action-items.md](./plans/channel-action-items.md) — action items picked up from a configured team channel as people talk, announced in the channel with Undo, processed from a durable per-space bookmark.
 - [conversation-decisions-and-insights.md](./plans/conversation-decisions-and-insights.md) — decisions and insights picked up from team channels on the action-item pickup's bookmark, announced with Undo and owned by people once edited; no new summaries.
 - [team-posture-capabilities.md](./plans/team-posture-capabilities.md) — parked, demand-gated team-native capabilities such as meeting notes, decision records, team Q&A, and digest.
 
