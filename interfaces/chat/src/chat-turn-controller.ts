@@ -227,6 +227,7 @@ export class ChatTurnController {
       event.user.userId,
       getPermissionContext(thread, {
         author: {
+          userId: event.user.userId,
           isMe: event.user.isMe,
           isBot: event.user.isBot,
         },
@@ -308,6 +309,7 @@ export class ChatTurnController {
       event.user.userId,
       getPermissionContext(thread, {
         author: {
+          userId: event.user.userId,
           isMe: event.user.isMe,
           isBot: event.user.isBot,
         },

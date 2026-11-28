@@ -1,5 +1,4 @@
-/** The localpart every brain's bot uses, so a peer's bot is `@_brain:<peer>`. */
-const BRAIN_BOT_LOCALPART = "_brain";
+import { BRAIN_BOT_LOCALPART } from "@brains/contracts";
 
 /** The slice of the auth backend that says how far a peer brain is trusted. */
 export interface MatrixPeerTrust {

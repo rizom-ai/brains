@@ -739,7 +739,7 @@ export interface MockMessage {
     userId: string;
     userName: string;
     fullName: string;
-    isBot: boolean;
+    isBot: boolean | "unknown";
     isMe: boolean;
   };
   attachments: Array<{

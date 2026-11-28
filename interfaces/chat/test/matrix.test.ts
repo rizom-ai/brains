@@ -201,11 +201,76 @@ describe("Matrix in the chat interface", () => {
   });
 });
 
+describe("A peer brain's bot in a shared room", () => {
+  const suite = setupChatInterfaceTest();
+  const peerBot = {
+    userId: "@_brain:peer.example.com",
+    userName: "_brain",
+    fullName: "Peer brain",
+    isBot: "unknown" as const,
+    isMe: false,
+  };
+
+  it("is answered when it mentions this brain, and not for what it says after", async () => {
+    await suite.harness.installPlugin(
+      createChatPlugin({ adapters: { matrix: baseMatrixConfig } }),
+    );
+    const chat = MockChatSdk.instances[0];
+    const room = createThread({
+      id: ROOM_THREAD_ID,
+      channelId: ROOM_THREAD_ID,
+      isDM: false,
+      adapter: { name: "matrix" },
+    });
+
+    await chat?.handlers.mentions[0]?.(
+      room,
+      createMessage({ text: "@brain what do you know?", author: peerBot }),
+    );
+    expect(room.subscribe).toHaveBeenCalledTimes(1);
+    expect(suite.agentService.chat).toHaveBeenCalledTimes(1);
+
+    suite.agentService.chat.mockClear();
+    await chat?.handlers.subscribedMessages[0]?.(
+      room,
+      createMessage({
+        text: "Thanks! And another thing.",
+        isMention: false,
+        author: peerBot,
+      }),
+    );
+    expect(suite.agentService.chat).not.toHaveBeenCalled();
+  });
+});
+
 describe("Matrix senders", () => {
+  it("treats a brain's bot, @_brain on any server, as a bot", () => {
+    const thread = createThreadLike(ROOM_THREAD_ID);
+    const message = {
+      author: {
+        userId: "@_brain:peer.example.com",
+        isMe: false,
+        isBot: "unknown",
+      },
+      isMention: false,
+      raw: {},
+    };
+    const config = { allowedChannels: [], allowDMs: true };
+
+    expect(shouldRouteChatMessage(thread, message, config)).toBe(false);
+    expect(
+      shouldRouteChatMessage(thread, { ...message, isMention: true }, config),
+    ).toBe(true);
+    expect(getPermissionContext(thread, message)).toEqual({
+      channelId: ROOM_ID,
+      isBot: true,
+    });
+  });
+
   it('routes a person the adapter cannot classify, which it reports as isBot "unknown"', () => {
     const thread = { ...createThreadLike(ROOM_THREAD_ID), isDM: true };
     const message = {
-      author: { isMe: false, isBot: "unknown" },
+      author: { userId: "user-1", isMe: false, isBot: "unknown" },
       isMention: false,
       raw: {},
     };
@@ -238,7 +303,11 @@ describe("Matrix routing ids", () => {
   it("uses the raw room id as the permission channel", () => {
     expect(
       getPermissionContext(createThreadLike(ROOM_THREAD_ID), {
-        author: { isBot: false, isMe: false },
+        author: {
+          userId: "@mira:brain.example.com",
+          isBot: false,
+          isMe: false,
+        },
       }),
     ).toEqual({ channelId: ROOM_ID, isBot: false });
   });
