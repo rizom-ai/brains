@@ -1,7 +1,7 @@
 import { requireEnv } from "./helpers";
 
 /** The model runtime the `models` accessory runs; kamal-deploy.yml pins the same image. */
-export const MODEL_RUNTIME_IMAGE = "ollama/ollama:0.40.11";
+export const MODEL_RUNTIME_IMAGE = "ollama/ollama:0.40.18";
 const MODELS_VOLUME = "/opt/brain-models:/root/.ollama";
 const MODEL_TAG = /^[A-Za-z0-9][A-Za-z0-9._:/-]*$/;
 

@@ -154,7 +154,7 @@ Agent evals at `d3c0c92252`, 2026-11-26, same judge, Ollama 0.40.18 (the first r
 - `inkling-2-mini` passes every image and upload case. `qwen3.6:35b` saves on a bare label after an image upload 3 of 3, and once each misreads an image's color, drops files from a keep-all save, says "saved as" in a read-only PDF summary and skips an asked-for image save. Its headless failures send a wrong `system_create` `source.kind` in six cases across the two runs.
 - Inkling's own failures: the verbatim update 2 of 3 (a wrong `source.kind`, no confirmation), and the private note save once with a wrong `source.kind` and once with no call.
 - Both models fail the 7 KB exact edit and the 17 KB patch (`mcp-long-note-update`) in every run: the read-back's content hash does not match, and the patch sends `source` (Inkling) or `fields` (Qwen) on an edit.
-- The deploy pins Ollama 0.40.11, which does not run `inkling-2-mini`.
+- The deploy pins Ollama 0.40.18; 0.40.11, pinned before, does not run `inkling-2-mini`.
 
 ## Goal
 
