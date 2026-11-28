@@ -1,5 +1,18 @@
 # @brains/directory-sync
 
+## 0.2.0-alpha.803
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.803
+  - @brains/content-formatters@0.2.0-alpha.803
+  - @brains/contracts@0.2.0-alpha.803
+  - @brains/document@0.2.0-alpha.803
+  - @brains/entity-placement@0.2.0-alpha.803
+  - @brains/image@0.2.0-alpha.803
+  - @brains/utils@0.2.0-alpha.803
+
 ## 0.2.0-alpha.802
 
 ### Patch Changes

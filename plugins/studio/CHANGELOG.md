@@ -1,5 +1,17 @@
 # @brains/studio
 
+## 0.2.0-alpha.803
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.803
+  - @brains/app-ui-react@0.2.0-alpha.803
+  - @brains/console-theme@0.2.0-alpha.803
+  - @brains/contracts@0.2.0-alpha.803
+  - @brains/operator-view-react@0.2.0-alpha.803
+  - @brains/utils@0.2.0-alpha.803
+
 ## 0.2.0-alpha.802
 
 ### Patch Changes
